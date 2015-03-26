@@ -1,0 +1,28 @@
+{ "name" :            "bson-ext"
+, "description" :     "The C++ bson parser for the node.js mongodb driver."
+, "keywords" :        ["mongodb", "bson", "parser"]
+, "version" :         "0.1.0"
+, "author" :          "Christian Amor Kvalheim <christkv@gmail.com>"
+, "contributors" :  []
+
+, "repository" :    { "type" :  "git"
+                    , "url" :   "git://github.com/christkv/bson-ext.git" }
+, "bugs" :          { "mail" :  "node-mongodb-native@googlegroups.com"
+                    , "url" :   "https://github.com/christkv/bson-ext/issues" }
+, "dependencies": {
+    "nan": "1.7.0"
+  }
+, "devDependencies": {
+    "nodeunit": "0.9.0"
+  }
+, "config":         { "native" : false }
+, "main":             "./index"
+, "directories" :   { "lib" : "./lib/bson" }
+, "engines" :       { "node" : ">=0.8.19" }
+, "scripts": {
+    "install" : "(node-gyp rebuild 2> builderror.log) || (exit 0)",
+    "test" : "nodeunit ./test/node && TEST_NATIVE=TRUE nodeunit ./test/node"
+}
+, "licenses" :    [ { "type" :  "Apache License, Version 2.0"
+                    , "url" :   "http://www.apache.org/licenses/LICENSE-2.0" } ]
+}
