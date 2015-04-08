@@ -112,35 +112,35 @@ exports['Should correctly handle embedded toBson function for an object'] = func
   test.done();
 }
 
-/**
- * @ignore
- */
-exports['Should correctly serialize when embedded non object returned by toBSON'] = function(test) {
-  // Test object
-  var doc = {
-    hello: new ObjectID(),
-    a:1,
-    b: {
-      d: 1
-    }
-  };
+// /**
+//  * @ignore
+//  */
+// exports['Should correctly serialize when embedded non object returned by toBSON'] = function(test) {
+//   // Test object
+//   var doc = {
+//     hello: new ObjectID(),
+//     a:1,
+//     b: {
+//       d: 1
+//     }
+//   };
 
-  // Add a toBson method to the object
-  doc.b.toBSON = function() {
-    return "hello";
-  }
+//   // Add a toBson method to the object
+//   doc.b.toBSON = function() {
+//     return "hello";
+//   }
 
-  // Serialize the data   
-  var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
-  var deserialized_doc = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);  
-  test.deepEqual("hello", deserialized_doc.b);
+//   // Serialize the data   
+//   var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
+//   var deserialized_doc = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);  
+//   test.deepEqual("hello", deserialized_doc.b);
 
-  // Serialize the data   
-  var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
-  var deserialized_doc = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);  
-  test.deepEqual("hello", deserialized_doc.b);
-  test.done();
-}
+//   // Serialize the data   
+//   var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
+//   var deserialized_doc = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);  
+//   test.deepEqual("hello", deserialized_doc.b);
+//   test.done();
+// }
 
 /**
  * @ignore
