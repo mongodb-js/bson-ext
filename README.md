@@ -19,7 +19,7 @@ npm test
 
 bson-ext uses [node-pre-gyp](http://npm.im/node-pre-gyp) to publish and install
 prebuilt binaries.  This means you don't need the full toolchain installed
-and configured correctly to use this module.  
+and configured correctly to use this module.
 
 ## License
 
