@@ -1,3 +1,7 @@
+0.1.2 2015-04-20
+----------------
+- Removed pre-packaged binaries from build.
+
 0.1.1 2015-04-20
 ----------------
 - Merged node-pre-gyp support (Issue #1, https://github.com/imlucas)
