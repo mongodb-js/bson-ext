@@ -1,30 +1,24 @@
-# Test against this version of Node.js
+# node.js support: Latest stable version, `0.10.x`
+# iojs support: Latest stable version
 environment:
+  node_pre_gyp_accessKeyId:
+    secure: Q/MT3KqteKjl23ePjDY9V93G8Ey91LJAOcvJPdEh0i4=
+  node_pre_gyp_secretAccessKey:
+    secure: pF+hGI1d/+HVKL0EWCGY6YxvRZrfQrLoxfG5AqQTLJ9hJZaiRRQTwU8cwL+4IEuW
   matrix:
-  # node.js
-  - nodejs_version: "0.10"
-  - nodejs_version: "0.12"
-  # io.js
-  - nodejs_version: "1.6"
+    - nodejs_version: 0.10
+    - nodejs_version: 0.12
+    - nodejs_version: "1"
 
 platform:
   - x86
   - x64
 
-# Install scripts. (runs after repo cloning)
 install:
-  # Get the latest stable version of Node.js or io.js
   - ps: Install-Product node $env:nodejs_version
-  # install modules
-  - npm install
+  - ps: Update-NodeJsInstallation (Get-NodeJsLatestBuild $env:nodejs_version)
 
-# Post-install test scripts.
 test_script:
-  # Output useful info for debugging.
-  - node --version
-  - npm --version
-  # run tests
-  - npm test
+  - .\test.bat
 
-# Don't actually build.
-build: off
+build: OFF
