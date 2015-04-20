@@ -2,3 +2,5 @@
 appveyor.yml
 build
 test.bat
+build/
+test/
