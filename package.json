@@ -1,27 +1,56 @@
-{ "name" :            "bson-ext"
-, "description" :     "The C++ bson parser for the node.js mongodb driver."
-, "keywords" :        ["mongodb", "bson", "parser"]
-, "version" :         "0.1.0"
-, "author" :          "Christian Amor Kvalheim <christkv@gmail.com>"
-, "contributors" :  []
-
-, "repository" :    { "type" :  "git"
-                    , "url" :   "git://github.com/christkv/bson-ext.git" }
-, "bugs" :          { "mail" :  "node-mongodb-native@googlegroups.com"
-                    , "url" :   "https://github.com/christkv/bson-ext/issues" }
-, "dependencies": {
-    "nan": "1.7.0"
+{
+  "name": "bson-ext",
+  "description": "The C++ bson parser for the node.js mongodb driver.",
+  "keywords": [
+    "mongodb",
+    "bson",
+    "parser"
+  ],
+  "version": "0.1.0",
+  "author": "Christian Amor Kvalheim <christkv@gmail.com>",
+  "contributors": [],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/christkv/bson-ext.git"
+  },
+  "bugs": {
+    "mail": "node-mongodb-native@googlegroups.com",
+    "url": "https://github.com/christkv/bson-ext/issues"
+  },
+  "dependencies": {
+    "nan": "~1.7.0",
+    "node-pre-gyp": "https://github.com/mongodb-js/node-pre-gyp/archive/v0.6.5-appveyor.tar.gz"
+  },
+  "bundledDependecies": [
+    "node-pre-gyp"
+  ],
+  "devDependencies": {
+    "aws-sdk": "~2.1.20",
+    "nodeunit": "~0.9.0"
+  },
+  "main": "./index",
+  "directories": {
+    "lib": "./lib/bson"
+  },
+  "engines": {
+    "node": ">=0.8.19"
+  },
+  "scripts": {
+    "install": "node-pre-gyp install --fallback-to-build",
+    "test": "nodeunit ./test/node",
+    "posttest": "node-pre-gyp publish-maybe"
+  },
+  "licenses": [
+    {
+      "type": "Apache License, Version 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  ],
+  "binary": {
+    "module_name": "bson",
+    "module_path": "build/Release",
+    "host": "https://bin.mongodb.org",
+    "remote_path": "/js/bson-ext/v{version}",
+    "bucket": "mongodb-dx-public"
   }
-, "devDependencies": {
-    "nodeunit": "0.9.0"
-  }
-, "main":             "./index"
-, "directories" :   { "lib" : "./lib/bson" }
-, "engines" :       { "node" : ">=0.8.19" }
-, "scripts": {
-    "install" : "(node-gyp rebuild 2> builderror.log) || (exit 0)",
-    "test" : "nodeunit ./test/node"
-}
-, "licenses" :    [ { "type" :  "Apache License, Version 2.0"
-                    , "url" :   "http://www.apache.org/licenses/LICENSE-2.0" } ]
 }
