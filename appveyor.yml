@@ -1,24 +1,21 @@
-# node.js support: Latest stable version, `0.10.x`
-# iojs support: Latest stable version
 environment:
   node_pre_gyp_accessKeyId:
     secure: Q/MT3KqteKjl23ePjDY9V93G8Ey91LJAOcvJPdEh0i4=
   node_pre_gyp_secretAccessKey:
     secure: pF+hGI1d/+HVKL0EWCGY6YxvRZrfQrLoxfG5AqQTLJ9hJZaiRRQTwU8cwL+4IEuW
-  matrix:
-    - nodejs_version: 0.10
-    - nodejs_version: 0.12
-    - nodejs_version: "1"
-
-platform:
-  - x86
-  - x64
-
-install:
-  - ps: Install-Product node $env:nodejs_version
-  - ps: Update-NodeJsInstallation (Get-NodeJsLatestBuild $env:nodejs_version)
 
 test_script:
+  - ps: Install-Product node 0.10 x86
+  - .\test.bat
+  - ps: Install-Product node 0.10 x64
+  - .\test.bat
+  - ps: Install-Product node 0.12 x86
+  - .\test.bat
+  - ps: Install-Product node 0.12 x64
+  - .\test.bat
+  - ps: Install-Product node 1 x86
+  - .\test.bat
+  - ps: Install-Product node 1 x64
   - .\test.bat
 
 build: OFF
