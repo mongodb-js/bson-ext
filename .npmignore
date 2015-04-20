@@ -1,3 +1,5 @@
 .travis.yml
 appveyor.yml
 test.bat
+build/
+test/
