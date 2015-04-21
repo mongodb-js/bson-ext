@@ -1,6 +1,6 @@
 .travis.yml
 appveyor.yml
-build
 test.bat
 build/
 test/
+.vagrant/

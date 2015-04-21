@@ -25,7 +25,6 @@
     "node-pre-gyp"
   ],
   "devDependencies": {
-    "aws-sdk": "~2.1.20",
     "nodeunit": "~0.9.0"
   },
   "main": "./index",
@@ -37,8 +36,7 @@
   },
   "scripts": {
     "install": "node-pre-gyp install --fallback-to-build",
-    "test": "nodeunit ./test/node",
-    "posttest": "node-pre-gyp publish-maybe"
+    "test": "nodeunit ./test/node"
   },
   "licenses": [
     {
