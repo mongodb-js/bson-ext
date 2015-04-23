@@ -6,16 +6,16 @@ environment:
 
 test_script:
   - ps: Install-Product node 0.10 x86
-  - .\test.bat
+  - .\test\scripts\test
   - ps: Install-Product node 0.10 x64
-  - .\test.bat
+  - .\test\scripts\test
   - ps: Install-Product node 0.12 x86
-  - .\test.bat
+  - .\test\scripts\test
   - ps: Install-Product node 0.12 x64
-  - .\test.bat
+  - .\test\scripts\test
   - ps: Install-Product node 1 x86
-  - .\test.bat
+  - .\test\scripts\test
   - ps: Install-Product node 1 x64
-  - .\test.bat
+  - .\test\scripts\test
 
 build: OFF
