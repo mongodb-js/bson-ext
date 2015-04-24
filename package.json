@@ -21,9 +21,6 @@
     "nan": "~1.7.0",
     "node-pre-gyp": "https://github.com/mongodb-js/node-pre-gyp/archive/v0.6.5-appveyor.tar.gz"
   },
-  "bundledDependecies": [
-    "node-pre-gyp"
-  ],
   "devDependencies": {
     "nodeunit": "~0.9.0"
   },
