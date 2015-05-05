@@ -6,7 +6,7 @@
     "bson",
     "parser"
   ],
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "Christian Amor Kvalheim <christkv@gmail.com>",
   "contributors": [],
   "repository": {
@@ -18,7 +18,7 @@
     "url": "https://github.com/christkv/bson-ext/issues"
   },
   "dependencies": {
-    "nan": "~1.7.0",
+    "nan": "~1.8.0",
     "node-pre-gyp": "https://github.com/mongodb-js/node-pre-gyp/archive/v0.6.5-appveyor.tar.gz"
   },
   "bundledDependecies": [
