@@ -1,3 +1,7 @@
+0.1.6 2015-05-07
+----------------
+- Updated to use bundled node-pre-gyp as install method.
+
 0.1.5 2015-05-07
 ----------------
 - Updated npmignore to remove any non-needed artifacts.
