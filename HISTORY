@@ -1,3 +1,7 @@
+0.1.7 2015-05-15
+----------------
+- Attempt node-pre-gyp otherwise fallback to node-gyp or just fail.
+
 0.1.6 2015-05-07
 ----------------
 - Updated to use bundled node-pre-gyp as install method.

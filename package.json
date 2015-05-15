@@ -6,7 +6,7 @@
     "bson",
     "parser"
   ],
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Christian Amor Kvalheim <christkv@gmail.com>",
   "contributors": [],
   "repository": {
@@ -35,7 +35,7 @@
     "node": ">=0.8.19"
   },
   "scripts": {
-    "install": "./node_modules/node-pre-gyp/bin/node-pre-gyp.js install --fallback-to-build",
+    "install": "(node-pre-gyp install --fallback-to-build) || (node-gyp rebuild 2> builderror.log) || (exit 0)",
     "test": "nodeunit ./test/node"
   },
   "licenses": [
