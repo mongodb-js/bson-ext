@@ -1,9 +1,10 @@
 os: linux
 language: node_js
 node_js:
-  - node
-  - '0.10'
-  - iojs
+  - 0.10
+  - 0.12
+  - 1.00
+  - 2.00
 sudo: false
 env:
   global:
