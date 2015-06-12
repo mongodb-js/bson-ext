@@ -1,3 +1,7 @@
+0.1.8 2015-06-12
+----------------
+- Refactored to use single 16MB buffer for all serialization.
+
 0.1.7 2015-05-15
 ----------------
 - Attempt node-pre-gyp otherwise fallback to node-gyp or just fail.

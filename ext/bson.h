@@ -69,6 +69,7 @@ public:
 
 public:
 	Persistent<Object> buffer;
+	size_t maxBSONSize;
 
 private:
 	static NAN_METHOD(New);
@@ -164,7 +165,7 @@ private:
 	size_t	count;
 };
 
-const size_t MAX_BSON_SIZE (1024*1024*16);
+const size_t MAX_BSON_SIZE (1024*1024*17);
 
 class DataStream
 {

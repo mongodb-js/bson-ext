@@ -3,7 +3,7 @@ var BSON = require('../..');
 var testCase = require('nodeunit').testCase,
   Buffer = require('buffer').Buffer,
   fs = require('fs'),
-  Code = require('../../lib/bson/code').Code, 
+  Code = require('../../lib/bson/code').Code,
   Binary = require('../../lib/bson/binary').Binary,
   Timestamp = require('../../lib/bson/timestamp').Timestamp,
   Long = require('../../lib/bson/long').Long,
@@ -20,16 +20,16 @@ var bson = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timest
 var hexStringToBinary = function(string) {
   var numberofValues = string.length / 2;
   var array = "";
-  
+
   for(var i = 0; i < numberofValues; i++) {
     array += String.fromCharCode(parseInt(string[i*2] + string[i*2 + 1], 16));
-  }  
+  }
   return array;
 }
 
-var assertBuffersEqual = function(test, buffer1, buffer2) {  
+var assertBuffersEqual = function(test, buffer1, buffer2) {
   if(buffer1.length != buffer2.length) test.fail("Buffers do not have the same length", buffer1, buffer2);
-  
+
   for(var i = 0; i < buffer1.length; i++) {
     test.equal(buffer1[i], buffer2[i]);
   }
@@ -77,7 +77,7 @@ var _Uint8Array = null;
 /**
  * Retrieve the server information for the current
  * instance of the db client
- * 
+ *
  * @ignore
  */
 exports.setUp = function(callback) {
@@ -89,7 +89,7 @@ exports.setUp = function(callback) {
 /**
  * Retrieve the server information for the current
  * instance of the db client
- * 
+ *
  * @ignore
  */
 exports.tearDown = function(callback) {
@@ -99,7 +99,7 @@ exports.tearDown = function(callback) {
 
 // /**
 //  * @ignore
-//  */  
+//  */
 // exports.shouldCorrectlyDeserializeUsingTypedArray = function(test) {
 //   var motherOfAllDocuments = {
 //     'string': '客家话',
@@ -113,12 +113,12 @@ exports.tearDown = function(callback) {
 //     'regexp': /regexp/,
 //     'boolean': true,
 //     'long': Long.fromNumber(100),
-//     'where': new Code('this.a > i', {i:1}),        
+//     'where': new Code('this.a > i', {i:1}),
 //     'dbref': new DBRef('namespace', new ObjectID(), 'integration_tests_'),
 //     'minkey': new MinKey(),
-//     'maxkey': new MaxKey()    
+//     'maxkey': new MaxKey()
 //   }
-//   
+//
 //   // Let's serialize it
 //   var data = BSONSE.BSON.serialize(motherOfAllDocuments, true, true, false);
 //   // Build a typed array
@@ -127,7 +127,7 @@ exports.tearDown = function(callback) {
 //   for(var i = 0; i < data.length; i++) {
 //     arr[i] = data[i]
 //   }
-//   
+//
 //   // Deserialize the object
 //   var object = BSONDE.BSON.deserialize(arr);
 //   // Asserts
@@ -154,74 +154,74 @@ exports.tearDown = function(callback) {
 //   test.done();
 // }
 
-/**
- * Should make sure that arrays by themselves can be either be properly
- * serialized and deserialized, or that serializing throws an error
- */
-exports.shouldCorrectlyDeserializeArray = function(test) {
-  var testArray = [1,2,3];
-  var data = null;
-
-  try {
-    data = bson.serialize(testArray, true, false, false);
-    test.ok(false);
-  } catch(e) {
-  }
-
-  try {
-    data = bson.serialize(testArray, true, false, false);
-    test.ok(false);
-  } catch(e) {
-    test.done();
-  }
-};
-
-/**
- * @ignore
- */  
-exports.shouldCorrectlySerializeUsingTypedArray = function(test) {
-  var motherOfAllDocuments = {
-    'string': 'hello',
-    'array': [1,2,3],
-    'hash': {'a':1, 'b':2},
-    'date': new Date(),
-    'oid': new ObjectID(),
-    'binary': new Binary(new Buffer("hello")),
-    'int': 42,
-    'float': 33.3333,
-    'regexp': /regexp/,
-    'boolean': true,
-    'long': Long.fromNumber(100),
-    'where': new Code('this.a > i', {i:1}),        
-    'dbref': new DBRef('namespace', new ObjectID(), 'integration_tests_'),
-    'minkey': new MinKey(),
-    'maxkey': new MaxKey()    
-  }
-  
-  // Let's serialize it
-  var data = bson.serialize(motherOfAllDocuments, true, false, false);
-  // And deserialize it again
-  var object = bson.deserialize(data);
-  // Asserts
-  test.equal(motherOfAllDocuments.string, object.string);
-  test.deepEqual(motherOfAllDocuments.array, object.array);
-  test.deepEqual(motherOfAllDocuments.date, object.date);
-  test.deepEqual(motherOfAllDocuments.oid.toHexString(), object.oid.toHexString());
-  test.deepEqual(motherOfAllDocuments.binary.length(), object.binary.length());
-  // Assert the values of the binary
-  for(var i = 0; i < motherOfAllDocuments.binary.length(); i++) {
-    test.equal(motherOfAllDocuments.binary.value[i], object.binary[i]);
-  }
-  test.deepEqual(motherOfAllDocuments.int, object.int);
-  test.deepEqual(motherOfAllDocuments.float, object.float);
-  test.deepEqual(motherOfAllDocuments.regexp, object.regexp);
-  test.deepEqual(motherOfAllDocuments.boolean, object.boolean);
-  test.deepEqual(motherOfAllDocuments.long.toNumber(), object.long);
-  test.deepEqual(motherOfAllDocuments.where, object.where);
-  test.deepEqual(motherOfAllDocuments.dbref.oid.toHexString(), object.dbref.oid.toHexString());
-  test.deepEqual(motherOfAllDocuments.dbref.namespace, object.dbref.namespace);
-  test.deepEqual(motherOfAllDocuments.dbref.db, object.dbref.db);
-  test.deepEqual(motherOfAllDocuments.minkey, object.minkey);
-  test.deepEqual(motherOfAllDocuments.maxkey, object.maxkey);
-  test.done();
-}
+// /**
+//  * Should make sure that arrays by themselves can be either be properly
+//  * serialized and deserialized, or that serializing throws an error
+//  */
+// exports.shouldCorrectlyDeserializeArray = function(test) {
+//   var testArray = [1,2,3];
+//   var data = null;
+//
+//   try {
+//     data = bson.serialize(testArray, true, false, false);
+//     test.ok(false);
+//   } catch(e) {
+//   }
+//
+//   try {
+//     data = bson.serialize(testArray, true, false, false);
+//     test.ok(false);
+//   } catch(e) {
+//     test.done();
+//   }
+// };
+//
+// /**
+//  * @ignore
+//  */
+// exports.shouldCorrectlySerializeUsingTypedArray = function(test) {
+//   var motherOfAllDocuments = {
+//     'string': 'hello',
+//     'array': [1,2,3],
+//     'hash': {'a':1, 'b':2},
+//     'date': new Date(),
+//     'oid': new ObjectID(),
+//     'binary': new Binary(new Buffer("hello")),
+//     'int': 42,
+//     'float': 33.3333,
+//     'regexp': /regexp/,
+//     'boolean': true,
+//     'long': Long.fromNumber(100),
+//     'where': new Code('this.a > i', {i:1}),
+//     'dbref': new DBRef('namespace', new ObjectID(), 'integration_tests_'),
+//     'minkey': new MinKey(),
+//     'maxkey': new MaxKey()
+//   }
+//
+//   // Let's serialize it
+//   var data = bson.serialize(motherOfAllDocuments, true, false, false);
+//   // And deserialize it again
+//   var object = bson.deserialize(data);
+//   // Asserts
+//   test.equal(motherOfAllDocuments.string, object.string);
+//   test.deepEqual(motherOfAllDocuments.array, object.array);
+//   test.deepEqual(motherOfAllDocuments.date, object.date);
+//   test.deepEqual(motherOfAllDocuments.oid.toHexString(), object.oid.toHexString());
+//   test.deepEqual(motherOfAllDocuments.binary.length(), object.binary.length());
+//   // Assert the values of the binary
+//   for(var i = 0; i < motherOfAllDocuments.binary.length(); i++) {
+//     test.equal(motherOfAllDocuments.binary.value[i], object.binary[i]);
+//   }
+//   test.deepEqual(motherOfAllDocuments.int, object.int);
+//   test.deepEqual(motherOfAllDocuments.float, object.float);
+//   test.deepEqual(motherOfAllDocuments.regexp, object.regexp);
+//   test.deepEqual(motherOfAllDocuments.boolean, object.boolean);
+//   test.deepEqual(motherOfAllDocuments.long.toNumber(), object.long);
+//   test.deepEqual(motherOfAllDocuments.where, object.where);
+//   test.deepEqual(motherOfAllDocuments.dbref.oid.toHexString(), object.dbref.oid.toHexString());
+//   test.deepEqual(motherOfAllDocuments.dbref.namespace, object.dbref.namespace);
+//   test.deepEqual(motherOfAllDocuments.dbref.db, object.dbref.db);
+//   test.deepEqual(motherOfAllDocuments.minkey, object.minkey);
+//   test.deepEqual(motherOfAllDocuments.maxkey, object.maxkey);
+//   test.done();
+// }

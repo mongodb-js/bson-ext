@@ -6,11 +6,11 @@
     "bson",
     "parser"
   ],
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Christian Amor Kvalheim <christkv@gmail.com>",
   "contributors": [],
   "repository": {
-    "type": "git", 
+    "type": "git",
     "url": "git://github.com/christkv/bson-ext.git"
   },
   "bugs": {
