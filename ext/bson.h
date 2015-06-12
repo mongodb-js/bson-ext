@@ -54,7 +54,7 @@ public:
 	~BSON() {}
 
 	static void Initialize(Handle<Object> target);
-        static NAN_METHOD(BSONDeserializeStream);
+  static NAN_METHOD(BSONDeserializeStream);
 
 	// JS based objects
 	static NAN_METHOD(BSONSerialize);
@@ -66,6 +66,9 @@ public:
 
 	// Constructor used for creating new BSON objects from C++
 	static Persistent<FunctionTemplate> constructor_template;
+
+public:
+	Persistent<Object> buffer;
 
 private:
 	static NAN_METHOD(New);
@@ -161,51 +164,143 @@ private:
 	size_t	count;
 };
 
+const size_t MAX_BSON_SIZE (1024*1024*16);
+
 class DataStream
 {
 public:
 	DataStream(char* aDestinationBuffer) : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer) { }
 
-	void	WriteByte(int value)									{ *p++ = value; }
-	void	WriteByte(const Handle<Object>& object, const Handle<String>& key)	{ *p++ = object->Get(key)->Int32Value(); }
+	void	WriteByte(int value) {
+		if((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		*p++ = value;
+	}
+
+	void	WriteByte(const Handle<Object>& object, const Handle<String>& key)	{
+		if((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		*p++ = object->Get(key)->Int32Value();
+	}
+
 #if USE_MISALIGNED_MEMORY_ACCESS
-	void	WriteInt32(int32_t value)								{ *reinterpret_cast<int32_t*>(p) = value; p += 4; }
-	void	WriteInt64(int64_t value)								{ *reinterpret_cast<int64_t*>(p) = value; p += 8; }
-	void	WriteDouble(double value)								{ *reinterpret_cast<double*>(p) = value; p += 8; }
+	void	WriteInt32(int32_t value)	{
+		if((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		*reinterpret_cast<int32_t*>(p) = value;
+		p += 4;
+	}
+
+	void	WriteInt64(int64_t value)	{
+		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		*reinterpret_cast<int64_t*>(p) = value;
+		p += 8;
+	}
+
+	void	WriteDouble(double value) {
+		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		*reinterpret_cast<double*>(p) = value;
+		p += 8;
+	}
 #else
-	void	WriteInt32(int32_t value)								{ memcpy(p, &value, 4); p += 4; }
-	void	WriteInt64(int64_t value)								{ memcpy(p, &value, 8); p += 8; }
-	void	WriteDouble(double value)								{ memcpy(p, &value, 8); p += 8; }
+	void	WriteInt32(int32_t value)	{
+		if((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		memcpy(p, &value, 4);
+		p += 4;
+	}
+
+	void	WriteInt64(int64_t value)	{
+		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		memcpy(p, &value, 8);
+		p += 8;
+	}
+
+	void	WriteDouble(double value) {
+		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		memcpy(p, &value, 8);
+		p += 8;
+	}
 #endif
-	void	WriteBool(const Handle<Value>& value)					{ WriteByte(value->BooleanValue() ? 1 : 0); }
-	void	WriteInt32(const Handle<Value>& value)					{ WriteInt32(value->Int32Value());			}
-	void	WriteInt32(const Handle<Object>& object, const Handle<String>& key) { WriteInt32(object->Get(key)); }
-	void	WriteInt64(const Handle<Value>& value)					{ WriteInt64(value->IntegerValue());		}
-	void	WriteDouble(const Handle<Value>& value)					{ WriteDouble(value->NumberValue());		}
-	void	WriteDouble(const Handle<Object>& object, const Handle<String>& key) { WriteDouble(object->Get(key)); }
-	void	WriteUInt32String(uint32_t name)						{ p += sprintf(p, "%u", name) + 1;			}
-	void	WriteLengthPrefixedString(const Local<String>& value)	{ WriteInt32(value->Utf8Length()+1); WriteString(value); }
+	void	WriteBool(const Handle<Value>& value) {
+		WriteByte(value->BooleanValue() ? 1 : 0);
+	}
+
+	void	WriteInt32(const Handle<Value>& value) {
+		WriteInt32(value->Int32Value());
+	}
+
+	void	WriteInt32(const Handle<Object>& object, const Handle<String>& key) {
+		WriteInt32(object->Get(key));
+	}
+
+	void	WriteInt64(const Handle<Value>& value) {
+		WriteInt64(value->IntegerValue());
+	}
+
+	void	WriteDouble(const Handle<Value>& value)	{
+		WriteDouble(value->NumberValue());
+	}
+
+	void	WriteDouble(const Handle<Object>& object, const Handle<String>& key) {
+		WriteDouble(object->Get(key));
+	}
+
+	void	WriteUInt32String(uint32_t name) {
+		p += sprintf(p, "%u", name) + 1;
+	}
+
+	void	WriteLengthPrefixedString(const Local<String>& value)	{
+		int32_t length = value->Utf8Length()+1;
+		if((size_t)((p + length) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		WriteInt32(length);
+		WriteString(value);
+	}
+
 	void	WriteObjectId(const Handle<Object>& object, const Handle<String>& key);
-	void	WriteString(const Local<String>& value)					{ p += value->WriteUtf8(p); }		// This returns the number of bytes inclusive of the NULL terminator.
-	void	WriteData(const char* data, size_t length)				{ memcpy(p, data, length); p += length; }
 
-	void*	BeginWriteType()										{ void* returnValue = p; p++; return returnValue; }
-	void	CommitType(void* beginPoint, BsonType value)			{ *reinterpret_cast<unsigned char*>(beginPoint) = value; }
-	void*	BeginWriteSize()										{ void* returnValue = p; p += 4; return returnValue; }
+	void	WriteString(const Local<String>& value)	{
+		if((size_t)(p - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		p += value->WriteUtf8(p);
+	}		// This returns the number of bytes inclusive of the NULL terminator.
+
+	void	WriteData(const char* data, size_t length) {
+		if((size_t)((p + length) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		memcpy(p, data, length);
+		p += length;
+	}
+
+	void*	BeginWriteType()										{
+		void* returnValue = p; p++;
+		return returnValue;
+	}
+
+	void	CommitType(void* beginPoint, BsonType value) {
+		*reinterpret_cast<unsigned char*>(beginPoint) = value;
+	}
+
+	void*	BeginWriteSize() {
+		if((size_t)(p - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+		void* returnValue = p; p += 4;
+		return returnValue;
+	}
 
 #if USE_MISALIGNED_MEMORY_ACCESS
-	void	CommitSize(void* beginPoint)							{ *reinterpret_cast<int32_t*>(beginPoint) = (int32_t) (p - (char*) beginPoint); }
+	void	CommitSize(void* beginPoint) {
+		*reinterpret_cast<int32_t*>(beginPoint) = (int32_t) (p - (char*) beginPoint);
+	}
 #else
-	void	CommitSize(void* beginPoint)							{ int32_t value = (int32_t) (p - (char*) beginPoint); memcpy(beginPoint, &value, 4); }
+	void	CommitSize(void* beginPoint) {
+		int32_t value = (int32_t) (p - (char*) beginPoint);
+		memcpy(beginPoint, &value, 4);
+	}
 #endif
 
-	size_t GetSerializeSize() const									{ return p - destinationBuffer; }
+	size_t GetSerializeSize() const	{
+		return p - destinationBuffer;
+	}
 
 	void	CheckKey(const Local<String>& keyName);
 
-protected:
+public:
 	char *const	destinationBuffer;		// base, never changes
-	char*		p;						// cursor into buffer
+	char*	p;													// cursor into buffer
 };
 
 template<typename T> class BSONSerializer : public T

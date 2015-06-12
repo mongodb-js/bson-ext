@@ -658,6 +658,8 @@ BSON::BSON() : ObjectWrap()
   NanAssignPersistent(timestampString, NanNew<String>("Timestamp"));
   NanAssignPersistent(minKeyString, NanNew<String>("MinKey"));
   NanAssignPersistent(maxKeyString, NanNew<String>("MaxKey"));
+
+	NanAssignPersistent(buffer, NanNewBufferHandle(sizeof(char) * 1024 * 1024 * 16));
 }
 
 void BSON::Initialize(v8::Handle<v8::Object> target)
@@ -697,6 +699,7 @@ NAN_METHOD(BSON::New)
 			// Create a bson object instance and return it
 			BSON *bson = new BSON();
 
+			// Defined the classmask
 			uint32_t foundClassesMask = 0;
 
 			// Iterate over all entries to save the instantiate functions
@@ -869,6 +872,8 @@ Local<Object> BSON::GetSerializeObject(const Handle<Value>& argValue)
 	}
 }
 
+// char *serialized_object = NULL;
+
 NAN_METHOD(BSON::BSONSerialize)
 {
 	NanScope();
@@ -888,29 +893,36 @@ NAN_METHOD(BSON::BSONSerialize)
 	// Calculate the total size of the document in binary form to ensure we only allocate memory once
 	// With serialize function
 	bool serializeFunctions = (args.Length() >= 4) && args[3]->BooleanValue();
-
+	char *final = NULL;
+	// char *serialized_object = (char *)malloc(sizeof(char) * 1024 * 1024 * 1);
 	char *serialized_object = NULL;
+
 	size_t object_size;
 	try
 	{
 		Local<Object> object = bson->GetSerializeObject(args[0]);
-
-		BSONSerializer<CountStream> counter(bson, false, serializeFunctions);
-		counter.SerializeDocument(object);
-		object_size = counter.GetSerializeSize();
-
-		// Allocate the memory needed for the serialization
-		serialized_object = (char *)malloc(object_size);
-		if(serialized_object == NULL) die("Failed to allocate memory for object");
+		// Get a local reference to the persistant buffer
+		Local<Object> o = NanNew(bson->buffer);
+		// Get a reference to the buffer *char pointer
+		serialized_object = Buffer::Data(o);
 
 		// Check if we have a boolean value
 		bool checkKeys = args.Length() >= 3 && args[1]->IsBoolean() && args[1]->BooleanValue();
 		BSONSerializer<DataStream> data(bson, checkKeys, serializeFunctions, serialized_object);
 		data.SerializeDocument(object);
+
+		// Get the object size
+		object_size = data.GetSerializeSize();
+		// Copy the correct size
+		final = (char *)malloc(sizeof(char) * object_size);
+		// Copy to the final
+		memcpy(final, serialized_object, object_size);
+		// Assign pointer
+		serialized_object = final;
 	}
 	catch(char *err_msg)
 	{
-		free(serialized_object);
+		free(final);
 		Local<String> error = NanNew<String>(err_msg);
 		free(err_msg);
 		return NanThrowError(error);
@@ -920,13 +932,13 @@ NAN_METHOD(BSON::BSONSerialize)
 	if(args.Length() == 3 || args.Length() == 4)
 	{
 		Local<Object> buffer = NanNewBufferHandle(serialized_object, object_size);
-		free(serialized_object);
+		free(final);
 		NanReturnValue(buffer);
 	}
 	else
 	{
 		Local<Value> bin_value = Encode(serialized_object, object_size, BINARY)->ToString();
-		free(serialized_object);
+		free(final);
 		NanReturnValue(bin_value);
 	}
 }
