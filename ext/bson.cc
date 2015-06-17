@@ -800,7 +800,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		}
 	} else {
 		// The length of the data for this encoding
-		ssize_t len = DecodeBytes(args[0], BINARY);
+		ssize_t len = NanDecodeBytes(args[0]);
 
 		// Validate that we have at least 5 bytes
 		if(len < 5) return NanThrowError("corrupt bson message < 5 bytes long");
@@ -808,7 +808,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		// Let's define the buffer size
 		char* data = (char *)malloc(len);
 		if(data == NULL) die("Failed to allocate char buffer for BSON serialization");
-		DecodeWrite(data, len, args[0], BINARY);
+		NanDecodeWrite(data, len, args[0]);
 
 		try {
 			BSONDeserializer deserializer(bson, data, len);
@@ -902,7 +902,7 @@ NAN_METHOD(BSON::BSONSerialize) {
 		free(final);
 		NanReturnValue(buffer);
 	} else {
-		Local<Value> bin_value = Encode(serialized_object, object_size, BINARY)->ToString();
+		Local<Value> bin_value = NanEncode(serialized_object, object_size)->ToString();
 		free(final);
 		NanReturnValue(bin_value);
 	}
