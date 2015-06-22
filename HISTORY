@@ -1,3 +1,7 @@
+0.1.10 2015-06-17
+-----------------
+- No longer print to console.error if driver did not load correctly.
+
 0.1.9 2015-06-17
 ----------------
 - Removed deprecated Node C++ method for Nan.h based ones.
