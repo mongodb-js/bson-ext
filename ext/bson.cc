@@ -120,7 +120,7 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Handle<Valu
 		{
 			void* typeLocation = this->BeginWriteType();
 			this->WriteString(propertyName);
-			SerializeValue(typeLocation, propertyValue);
+			SerializeValue(typeLocation, propertyValue, false);
 		}
 	}
 
@@ -139,7 +139,7 @@ template<typename T> void BSONSerializer<T>::SerializeArray(const Handle<Value>&
 	{
 		void* typeLocation = this->BeginWriteType();
 		this->WriteUInt32String(i);
-		SerializeValue(typeLocation, array->Get(i));
+		SerializeValue(typeLocation, array->Get(i), true);
 	}
 
 	this->WriteByte(0);
@@ -149,7 +149,7 @@ template<typename T> void BSONSerializer<T>::SerializeArray(const Handle<Value>&
 // This is templated so that we can use this function to both count the number of bytes, and to serialize those bytes.
 // The template approach eliminates almost all of the inspection of values unless they're required (eg. string lengths)
 // and ensures that there is always consistency between bytes counted and bytes written by design.
-template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, const Handle<Value> constValue)
+template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, const Handle<Value> constValue, bool isArray)
 {
 	// Turn into local value
 	Local<Value> value = NanNew<Value>(constValue);
@@ -302,18 +302,18 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 
 				void* refType = this->BeginWriteType();
 				this->WriteData("$ref", 5);
-				SerializeValue(refType, object->Get(NanNew(bson->_dbRefNamespaceString)));
+				SerializeValue(refType, object->Get(NanNew(bson->_dbRefNamespaceString)), false);
 
 				void* idType = this->BeginWriteType();
 				this->WriteData("$id", 4);
-				SerializeValue(idType, object->Get(NanNew(bson->_dbRefOidString)));
+				SerializeValue(idType, object->Get(NanNew(bson->_dbRefOidString)), false);
 
 				const Local<Value>& refDbValue = object->Get(NanNew(bson->_dbRefDbString));
 				if(!refDbValue->IsUndefined())
 				{
 					void* dbType = this->BeginWriteType();
 					this->WriteData("$db", 4);
-					SerializeValue(dbType, refDbValue);
+					SerializeValue(dbType, refDbValue, false);
 				}
 
 				this->WriteByte(0);
@@ -350,6 +350,10 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 		}
 	}
 	else if(value->IsNull())
+	{
+		this->CommitType(typeLocation, BSON_TYPE_NULL);
+	}
+	else if(value->IsUndefined() && isArray) 
 	{
 		this->CommitType(typeLocation, BSON_TYPE_NULL);
 	}

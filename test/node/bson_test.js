@@ -316,6 +316,21 @@ exports['Should correctly ignore undefined values'] = function(test) {
 /**
  * @ignore
  */
+exports['Should correctly serialize undefined array entries as null values'] = function(test) {
+  var doc = {doc: {notdefined: undefined}, a: [1, 2, undefined, 3]};
+  var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
+  var serialized_data2 = new Buffer(new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).calculateObjectSize(doc, false, true));
+  new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serializeWithBufferAndIndex(doc, false, serialized_data2, 0);
+  assertBuffersEqual(test, serialized_data, serialized_data2, 0);
+  var doc1 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
+  console.dir(doc1)
+  test.ok(doc1.notdefined == undefined);
+  test.done();
+}
+
+/**
+ * @ignore
+ */
 exports['Should Correctly Serialize and Deserialize Array'] = function(test) {
   var doc = {doc: [1, 2, 'a', 'b']};
   var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);

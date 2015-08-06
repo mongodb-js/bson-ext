@@ -1,3 +1,7 @@
+0.1.12 2015-08-06
+-----------------
+- Undefined fields serialized as null values in arrays.
+
 0.1.11 2015-08-06
 -----------------
 - Undefined fields are omitted from serialization.
