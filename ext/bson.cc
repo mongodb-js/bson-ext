@@ -116,7 +116,7 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Handle<Valu
 
 		const Local<Value>& propertyValue = object->Get(propertyName);
 
-		if(serializeFunctions || !propertyValue->IsFunction())
+		if((serializeFunctions || !propertyValue->IsFunction()) && !propertyValue->IsUndefined())
 		{
 			void* typeLocation = this->BeginWriteType();
 			this->WriteString(propertyName);
@@ -157,9 +157,6 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	// Check for toBSON function
 	if(value->IsObject()) {
 		Local<Object> object = value->ToObject();
-
-		// NanNew<String>("toBSON")
-		// NanNew(BSON::_toBSONString)
 
 		if(object->Has(NanNew<String>("toBSON"))) {
 			const Local<Value>& toBSON = object->Get(NanNew<String>("toBSON"));
@@ -352,7 +349,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			SerializeDocument(value);
 		}
 	}
-	else if(value->IsNull() || value->IsUndefined())
+	else if(value->IsNull())
 	{
 		this->CommitType(typeLocation, BSON_TYPE_NULL);
 	}

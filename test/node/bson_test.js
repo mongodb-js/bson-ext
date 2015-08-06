@@ -301,14 +301,15 @@ exports['Should Correctly Serialize and Deserialize Object'] = function(test) {
 /**
  * @ignore
  */
-exports['Should Correctly Serialize undefined as null and Deserialize it as null value'] = function(test) {
+exports['Should correctly ignore undefined values'] = function(test) {
   var doc = {doc: {notdefined: undefined}};
+  // var doc = {doc: 1, a: undefined};
   var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
-
   var serialized_data2 = new Buffer(new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).calculateObjectSize(doc, false, true));
   new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serializeWithBufferAndIndex(doc, false, serialized_data2, 0);
   assertBuffersEqual(test, serialized_data, serialized_data2, 0);
-  test.deepEqual(null, new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data).doc.notdefined);
+  var doc1 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
+  test.ok(doc1.notdefined == undefined);
   test.done();
 }
 

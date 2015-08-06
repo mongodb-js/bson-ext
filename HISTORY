@@ -1,3 +1,7 @@
+0.1.11 2015-08-06
+-----------------
+- Undefined fields are omitted from serialization.
+
 0.1.10 2015-06-17
 -----------------
 - No longer print to console.error if driver did not load correctly.
