@@ -428,15 +428,15 @@ Local<String> BSONDeserializer::ReadObjectId() {
 	return NanNew<String>(objectId, 12);
 }
 
-Handle<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs) {
+Handle<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs, bool promoteBuffers) {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
 	BSONDeserializer documentDeserializer(*this, length-4);
-	return documentDeserializer.DeserializeDocumentInternal(promoteLongs);
+	return documentDeserializer.DeserializeDocumentInternal(promoteLongs, promoteBuffers);
 }
 
-Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
+Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs, bool promoteBuffers) {
 	Local<Object> returnObject = NanNew<Object>();
 
 	while(HasMoreData()) {
@@ -444,7 +444,7 @@ Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 		const Handle<Value>& name = ReadCString();
 		if(name->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
 		// name->Is
-		const Handle<Value>& value = DeserializeValue(type, promoteLongs);
+		const Handle<Value>& value = DeserializeValue(type, promoteLongs, promoteBuffers);
 		returnObject->ForceSet(name, value);
 	}
 
@@ -460,21 +460,21 @@ Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 	}
 }
 
-Handle<Value> BSONDeserializer::DeserializeArray(bool promoteLongs) {
+Handle<Value> BSONDeserializer::DeserializeArray(bool promoteLongs, bool promoteBuffers) {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Array Document is less than 5 bytes");
 
 	BSONDeserializer documentDeserializer(*this, length-4);
-	return documentDeserializer.DeserializeArrayInternal(promoteLongs);
+	return documentDeserializer.DeserializeArrayInternal(promoteLongs, promoteBuffers);
 }
 
-Handle<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs) {
+Handle<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs, bool promoteBuffers) {
 	Local<Array> returnArray = NanNew<Array>();
 
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
 		uint32_t index = ReadIntegerString();
-		const Handle<Value>& value = DeserializeValue(type, promoteLongs);
+		const Handle<Value>& value = DeserializeValue(type, promoteLongs, promoteBuffers);
 		returnArray->Set(index, value);
 	}
 
@@ -482,7 +482,7 @@ Handle<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs) {
 	return returnArray;
 }
 
-Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs)
+Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs, bool promoteBuffers)
 {
 	switch(type)
 	{
@@ -528,7 +528,7 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 	case BSON_TYPE_CODE_W_SCOPE: {
 			ReadUInt32();
 			const Local<Value>& code = ReadString();
-			const Handle<Value>& scope = DeserializeDocument(promoteLongs);
+			const Handle<Value>& scope = DeserializeDocument(promoteLongs, promoteBuffers);
 			Local<Value> argv[] = { code, scope->ToObject() };
 			return NanNew(bson->codeConstructor)->NewInstance(2, argv);
 		}
@@ -548,8 +548,12 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 			Local<Object> buffer = NanNewBufferHandle(p, length);
 			p += length;
 
-			Handle<Value> argv[] = { buffer, NanNew<Uint32>(subType) };
-			return NanNew(bson->binaryConstructor)->NewInstance(2, argv);
+			if (promoteBuffers) {
+				return buffer;
+			} else {
+				Handle<Value> argv[] = { buffer, NanNew<Uint32>(subType) };
+				return NanNew(bson->binaryConstructor)->NewInstance(2, argv);
+			}
 		}
 
 	case BSON_TYPE_LONG: {
@@ -578,10 +582,10 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 		return NanNew<Date>((double) ReadInt64());
 
 	case BSON_TYPE_ARRAY:
-		return DeserializeArray(promoteLongs);
+		return DeserializeArray(promoteLongs, promoteBuffers);
 
 	case BSON_TYPE_OBJECT:
-		return DeserializeDocument(promoteLongs);
+		return DeserializeDocument(promoteLongs, promoteBuffers);
 
 	case BSON_TYPE_SYMBOL: {
 			const Local<String>& string = ReadString();
@@ -760,6 +764,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 
 	// Promote longs
 	bool promoteLongs = true;
+	bool promoteBuffers = false;
 
 	// If we have an options object
 	if(args.Length() == 2 && args[1]->IsObject()) {
@@ -767,6 +772,10 @@ NAN_METHOD(BSON::BSONDeserialize) {
 
 		if(options->Has(NanNew<String>("promoteLongs"))) {
 			promoteLongs = options->Get(NanNew<String>("promoteLongs"))->ToBoolean()->Value();
+		}
+
+		if(options->Has(NanNew<String>("promoteBuffers"))) {
+			promoteBuffers = options->Get(NanNew<String>("promoteBuffers"))->ToBoolean()->Value();
 		}
 	}
 
@@ -793,7 +802,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		try {
 			BSONDeserializer deserializer(bson, data, length);
 			// deserializer.promoteLongs = promoteLongs;
-			NanReturnValue(deserializer.DeserializeDocument(promoteLongs));
+			NanReturnValue(deserializer.DeserializeDocument(promoteLongs, promoteBuffers));
 		} catch(char* exception) {
 			Local<String> error = NanNew<String>(exception);
 			free(exception);
@@ -814,7 +823,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		try {
 			BSONDeserializer deserializer(bson, data, len);
 			// deserializer.promoteLongs = promoteLongs;
-			Handle<Value> result = deserializer.DeserializeDocument(promoteLongs);
+			Handle<Value> result = deserializer.DeserializeDocument(promoteLongs, promoteBuffers);
 			free(data);
 			NanReturnValue(result);
 
@@ -989,14 +998,20 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	uint32_t index = args[1]->Uint32Value();
 	uint32_t resultIndex = args[4]->Uint32Value();
 	bool promoteLongs = true;
+	bool promoteBuffers = false;
 
-	// Check for the value promoteLongs in the options object
+	// Check for the values in the options object
 	if(args.Length() == 6) {
 		Local<Object> options = args[5]->ToObject();
 
 		// Check if we have the promoteLong variable
 		if(options->Has(NanNew<String>("promoteLongs"))) {
 			promoteLongs = options->Get(NanNew<String>("promoteLongs"))->ToBoolean()->Value();
+		}
+
+		// Check if we have the promoteBuffers variable
+		if(options->Has(NanNew<String>("promoteBuffers"))) {
+			promoteBuffers = options->Get(NanNew<String>("promoteBuffers"))->ToBoolean()->Value();
 		}
 	}
 
@@ -1019,7 +1034,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	BSONDeserializer deserializer(bson, data+index, length-index);
 	for(uint32_t i = 0; i < numberOfDocuments; i++) {
 		try {
-			documents->Set(i + resultIndex, deserializer.DeserializeDocument(promoteLongs));
+			documents->Set(i + resultIndex, deserializer.DeserializeDocument(promoteLongs, promoteBuffers));
 		} catch (char* exception) {
 		  Local<String> error = NanNew<String>(exception);
 			free(exception);
