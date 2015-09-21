@@ -16,8 +16,56 @@
 #include <v8.h>
 #include "nan.h"
 
-using namespace v8;
-using namespace node;
+using v8::Handle;
+using v8::Local;
+using v8::Value;
+using v8::Integer;
+using v8::Number;
+using v8::Int32;
+using v8::Uint32;
+using v8::String;
+using v8::Object;
+using v8::Date;
+using v8::Array;
+using v8::RegExp;
+using v8::Function;
+using v8::FunctionTemplate;
+using Nan::Persistent;
+using Nan::ObjectWrap;
+
+#define NanStr(x) (Unmaybe(Nan::New<String>(x)))
+#define NanHas(obj, key) (Nan::Has(obj, NanKey(key)).FromJust())
+#define NanGet(obj, key) (Unmaybe(Nan::Get(obj, NanKey(key))))
+#define NanAssignPersistent(persistent, value) persistent.Reset(value)
+// Unmaybe overloading to conviniently convert from Local/MaybeLocal/Maybe to Local/plain value
+template <class T>
+inline Local<T> Unmaybe(Local<T> h) {
+    return h;
+}
+template <class T>
+inline Local<T> Unmaybe(Nan::MaybeLocal<T> h) {
+    return h.ToLocalChecked();
+}
+template <class T>
+inline T Unmaybe(Nan::Maybe<T> h) {
+    return h.FromJust();
+}
+// NanKey overloading to conviniently convert to a propert key for object/array
+inline int NanKey(int i) {
+    return i;
+}
+inline Local<String> NanKey(const char* s) {
+    return NanStr(s);
+}
+inline Local<String> NanKey(const std::string& s) {
+    return NanStr(s);
+}
+inline Local<String> NanKey(const Local<String>& s) {
+    return s;
+}
+inline Local<String> NanKey(const Nan::Persistent<String>& s) {
+    return NanStr(s);
+}
 
 //===========================================================================
 
@@ -48,13 +96,13 @@ enum BsonType
 
 template<typename T> class BSONSerializer;
 
-class BSON : public ObjectWrap {
+class BSON : public Nan::ObjectWrap {
 public:
 	BSON();
 	~BSON() {}
 
 	static void Initialize(Handle<Object> target);
-  static NAN_METHOD(BSONDeserializeStream);
+ 	static NAN_METHOD(BSONDeserializeStream);
 
 	// JS based objects
 	static NAN_METHOD(BSONSerialize);

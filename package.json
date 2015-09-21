@@ -18,7 +18,7 @@
     "url": "https://github.com/christkv/bson-ext/issues"
   },
   "dependencies": {
-    "nan": "~1.8.0",
+    "nan": "~2.0.9",
     "node-pre-gyp": "https://github.com/mongodb-js/node-pre-gyp/archive/v0.6.5-appveyor.tar.gz"
   },
   "bundledDependecies": [
