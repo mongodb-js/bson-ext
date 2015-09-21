@@ -47,7 +47,7 @@ void die(const char *message) {
 
 //===========================================================================
 
-void DataStream::WriteObjectId(const Handle<Object>& object, const Handle<String>& key)
+void DataStream::WriteObjectId(const Local<Object>& object, const Local<String>& key)
 {
 	uint16_t buffer[12];
 	NanGet(object, key)->ToString()->Write(buffer, 0, 12);
@@ -96,7 +96,7 @@ void DataStream::CheckKey(const Local<String>& keyName)
 	}
 }
 
-template<typename T> void BSONSerializer<T>::SerializeDocument(const Handle<Value>& value)
+template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value>& value)
 {
 	void* documentSize = this->BeginWriteSize();
 	Local<Object> object = bson->GetSerializeObject(value);
@@ -125,7 +125,7 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Handle<Valu
 	this->CommitSize(documentSize);
 }
 
-template<typename T> void BSONSerializer<T>::SerializeArray(const Handle<Value>& value)
+template<typename T> void BSONSerializer<T>::SerializeArray(const Local<Value>& value)
 {
 	void* documentSize = this->BeginWriteSize();
 
@@ -146,7 +146,7 @@ template<typename T> void BSONSerializer<T>::SerializeArray(const Handle<Value>&
 // This is templated so that we can use this function to both count the number of bytes, and to serialize those bytes.
 // The template approach eliminates almost all of the inspection of values unless they're required (eg. string lengths)
 // and ensures that there is always consistency between bytes counted and bytes written by design.
-template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, const Handle<Value> constValue, bool isArray)
+template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, const Local<Value> constValue, bool isArray)
 {
 	Local<Value> value = constValue;
 
@@ -200,7 +200,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	else if(value->IsRegExp())
 	{
 		this->CommitType(typeLocation, BSON_TYPE_REGEXP);
-		const Handle<RegExp>& regExp = Handle<RegExp>::Cast(value);
+		const Local<RegExp>& regExp = Local<RegExp>::Cast(value);
 
 		this->WriteString(regExp->GetSource());
 
@@ -376,7 +376,7 @@ BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t le
 	if(*pEnd != '\0') ThrowAllocatedStringException(64, "Missing end of document marker '\\0'");
 }
 
-Handle<Value> BSONDeserializer::ReadCString() {
+Local<Value> BSONDeserializer::ReadCString() {
 	char* start = p;
 	while(*p++ && (p < pEnd)) { }
 	if(p > pEnd) {
@@ -424,7 +424,7 @@ Local<String> BSONDeserializer::ReadObjectId() {
 	return Unmaybe(Nan::New<String>(objectId, 12));
 }
 
-Handle<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs) {
+Local<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs) {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
@@ -432,15 +432,15 @@ Handle<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs) {
 	return documentDeserializer.DeserializeDocumentInternal(promoteLongs);
 }
 
-Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
+Local<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 	Local<Object> returnObject = Unmaybe(Nan::New<Object>());
 
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
-		const Handle<Value>& name = ReadCString();
+		const Local<Value>& name = ReadCString();
 		if(name->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
 		// name->Is
-		const Handle<Value>& value = DeserializeValue(type, promoteLongs);
+		const Local<Value>& value = DeserializeValue(type, promoteLongs);
 		returnObject->ForceSet(name, value);
 	}
 
@@ -456,7 +456,7 @@ Handle<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 	}
 }
 
-Handle<Value> BSONDeserializer::DeserializeArray(bool promoteLongs) {
+Local<Value> BSONDeserializer::DeserializeArray(bool promoteLongs) {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Array Document is less than 5 bytes");
 
@@ -464,13 +464,13 @@ Handle<Value> BSONDeserializer::DeserializeArray(bool promoteLongs) {
 	return documentDeserializer.DeserializeArrayInternal(promoteLongs);
 }
 
-Handle<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs) {
+Local<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs) {
 	Local<Array> returnArray = Unmaybe(Nan::New<Array>());
 
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
 		uint32_t index = ReadIntegerString();
-		const Handle<Value>& value = DeserializeValue(type, promoteLongs);
+		const Local<Value>& value = DeserializeValue(type, promoteLongs);
 		returnArray->Set(index, value);
 	}
 
@@ -478,7 +478,7 @@ Handle<Value> BSONDeserializer::DeserializeArrayInternal(bool promoteLongs) {
 	return returnArray;
 }
 
-Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs)
+Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs)
 {
 	switch(type)
 	{
@@ -508,7 +508,7 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 		return (ReadByte() != 0) ? Nan::True() : Nan::False();
 
 	case BSON_TYPE_REGEXP: {
-			const Handle<Value>& regex = ReadCString();
+			const Local<Value>& regex = ReadCString();
 			if(regex->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
 			int32_t options = ReadRegexOptions();
 			return Unmaybe(Nan::New<RegExp>(regex->ToString(), (RegExp::Flags) options));
@@ -524,7 +524,7 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 	case BSON_TYPE_CODE_W_SCOPE: {
 			ReadUInt32();
 			const Local<Value>& code = ReadString();
-			const Handle<Value>& scope = DeserializeDocument(promoteLongs);
+			const Local<Value>& scope = DeserializeDocument(promoteLongs);
 			Local<Value> argv[] = { code, scope->ToObject() };
 			return Nan::New(bson->codeConstructor)->NewInstance(2, argv);
 		}
@@ -544,7 +544,7 @@ Handle<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLong
 			Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, length));
 			p += length;
 
-			Handle<Value> argv[] = { buffer, Nan::New<Uint32>(subType) };
+			Local<Value> argv[] = { buffer, Nan::New<Uint32>(subType) };
 			return Nan::New(bson->binaryConstructor)->NewInstance(2, argv);
 		}
 
@@ -633,7 +633,7 @@ BSON::BSON() : ObjectWrap() {
   NanAssignPersistent(maxKeyString, NanStr("MaxKey"));
 }
 
-void BSON::Initialize(v8::Handle<v8::Object> target) {
+void BSON::Initialize(v8::Local<v8::Object> target) {
 	// Grab the scope of the call from Node
 	Nan::HandleScope scope;
 	// Define a new function template
@@ -810,7 +810,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		try {
 			BSONDeserializer deserializer(bson, data, len);
 			// deserializer.promoteLongs = promoteLongs;
-			Handle<Value> result = deserializer.DeserializeDocument(promoteLongs);
+			Local<Value> result = deserializer.DeserializeDocument(promoteLongs);
 			free(data);
 			info.GetReturnValue().Set(result);
 
@@ -823,7 +823,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 	}
 }
 
-Local<Object> BSON::GetSerializeObject(const Handle<Value>& argValue)
+Local<Object> BSON::GetSerializeObject(const Local<Value>& argValue)
 {
 	Local<Object> object = argValue->ToObject();
 
@@ -1028,7 +1028,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 }
 
 // Exporting function
-extern "C" void init(Handle<Object> target) {
+extern "C" void init(Local<Object> target) {
 	Nan::HandleScope scope;
 	BSON::Initialize(target);
 }
