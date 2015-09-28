@@ -135,40 +135,6 @@ private:
 	Persistent<Function> minKeyConstructor;
 	Persistent<Function> maxKeyConstructor;
 
-	// Equality Objects
-	static Persistent<String> longString;
-	static Persistent<String> objectIDString;
-	static Persistent<String> binaryString;
-	static Persistent<String> codeString;
-	static Persistent<String> dbrefString;
-	static Persistent<String> symbolString;
-	static Persistent<String> doubleString;
-	static Persistent<String> timestampString;
-	static Persistent<String> minKeyString;
-	static Persistent<String> maxKeyString;
-
-	// Equality speed up comparison objects
-	static Persistent<String> _bsontypeString;
-	static Persistent<String> _longLowString;
-	static Persistent<String> _longHighString;
-	static Persistent<String> _objectIDidString;
-	static Persistent<String> _binaryPositionString;
-	static Persistent<String> _binarySubTypeString;
-	static Persistent<String> _binaryBufferString;
-	static Persistent<String> _doubleValueString;
-	static Persistent<String> _symbolValueString;
-
-	static Persistent<String> _dbRefRefString;
-	static Persistent<String> _dbRefIdRefString;
-	static Persistent<String> _dbRefDbRefString;
-	static Persistent<String> _dbRefNamespaceString;
-	static Persistent<String> _dbRefDbString;
-	static Persistent<String> _dbRefOidString;
-
-	static Persistent<String> _codeCodeString;
-	static Persistent<String> _codeScopeString;
-	static Persistent<String> _toBSONString;
-
 	Local<Object> GetSerializeObject(const Local<Value>& object);
 
 	template<typename T> friend class BSONSerializer;

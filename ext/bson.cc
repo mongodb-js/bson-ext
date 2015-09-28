@@ -47,6 +47,40 @@ void die(const char *message) {
 
 //===========================================================================
 
+// Equality Objects
+static const char* LONG_CLASS_NAME = "Long";
+static const char* OBJECT_ID_CLASS_NAME = "ObjectID";
+static const char* BINARY_CLASS_NAME = "Binary";
+static const char* CODE_CLASS_NAME = "Code";
+static const char* DBREF_CLASS_NAME = "DBRef";
+static const char* SYMBOL_CLASS_NAME = "Symbol";
+static const char* DOUBLE_CLASS_NAME = "Double";
+static const char* TIMESTAMP_CLASS_NAME = "Timestamp";
+static const char* MIN_KEY_CLASS_NAME = "MinKey";
+static const char* MAX_KEY_CLASS_NAME = "MaxKey";
+
+// Equality speed up comparison objects
+static const char* BSONTYPE_PROPERTY_NAME = "_bsontype";
+static const char* LONG_LOW_PROPERTY_NAME = "low_";
+static const char* LONG_HIGH_PROPERTY_NAME = "high_";
+static const char* OBJECT_ID_ID_PROPERTY_NAME = "id";
+static const char* BINARY_POSITION_PROPERTY_NAME = "position";
+static const char* BINARY_SUBTYPE_PROPERTY_NAME = "sub_type";
+static const char* BINARY_BUFFER_PROPERTY_NAME = "buffer";
+static const char* DOUBLE_VALUE_PROPERTY_NAME = "value";
+static const char* SYMBOL_VALUE_PROPERTY_NAME = "value";
+
+static const char* DBREF_REF_PROPERTY_NAME = "$ref";
+static const char* DBREF_ID_REF_PROPERTY_NAME = "$id";
+static const char* DBREF_DB_REF_PROPERTY_NAME = "$db";
+static const char* DBREF_NAMESPACE_PROPERTY_NAME = "namespace";
+static const char* DBREF_DB_PROPERTY_NAME = "db";
+static const char* DBREF_OID_PROPERTY_NAME = "oid";
+
+static const char* CODE_CODE_PROPERTY_NAME = "code";
+static const char* CODE_SCOPE_PROPERTY_NAME = "scope";
+static const char* TO_BSON_PROPERTY_NAME = "toBSON";
+
 void DataStream::WriteObjectId(const Local<Object>& object, const Local<String>& key)
 {
 	uint16_t buffer[12];
@@ -218,56 +252,56 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	else if(value->IsObject())
 	{
 		const Local<Object>& object = value->ToObject();
-		if(NanHas(object, bson->_bsontypeString))
+		if(NanHas(object, BSONTYPE_PROPERTY_NAME))
 		{
-			const Local<String>& constructorString = NanGet(object, bson->_bsontypeString)->ToString();
-			if(NanStr(bson->longString)->StrictEquals(constructorString))
+			const Local<String>& constructorString = NanGet(object, BSONTYPE_PROPERTY_NAME)->ToString();
+			if(NanStr(LONG_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_LONG);
-				this->WriteInt32(object, NanStr(bson->_longLowString));
-				this->WriteInt32(object, NanStr(bson->_longHighString));
+				this->WriteInt32(object, NanStr(LONG_LOW_PROPERTY_NAME));
+				this->WriteInt32(object, NanStr(LONG_HIGH_PROPERTY_NAME));
 			}
-			else if(NanStr(bson->timestampString)->StrictEquals(constructorString))
+			else if(NanStr(TIMESTAMP_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_TIMESTAMP);
-				this->WriteInt32(object, NanStr(bson->_longLowString));
-				this->WriteInt32(object, NanStr(bson->_longHighString));
+				this->WriteInt32(object, NanStr(LONG_LOW_PROPERTY_NAME));
+				this->WriteInt32(object, NanStr(LONG_HIGH_PROPERTY_NAME));
 			}
-			else if(NanStr(bson->objectIDString)->StrictEquals(constructorString))
+			else if(NanStr(OBJECT_ID_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_OID);
-				this->WriteObjectId(object, NanStr(bson->_objectIDidString));
+				this->WriteObjectId(object, NanStr(OBJECT_ID_ID_PROPERTY_NAME));
 			}
-			else if(NanStr(bson->binaryString)->StrictEquals(constructorString))
+			else if(NanStr(BINARY_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_BINARY);
 
-				uint32_t length = NanGet(object, bson->_binaryPositionString)->Uint32Value();
-				Local<Object> bufferObj = NanGet(object, bson->_binaryBufferString)->ToObject();
+				uint32_t length = NanGet(object, BINARY_POSITION_PROPERTY_NAME)->Uint32Value();
+				Local<Object> bufferObj = NanGet(object, BINARY_BUFFER_PROPERTY_NAME)->ToObject();
 
 				this->WriteInt32(length);
-				this->WriteByte(object, NanStr(bson->_binarySubTypeString));	// write subtype
+				this->WriteByte(object, NanStr(BINARY_SUBTYPE_PROPERTY_NAME));	// write subtype
 				// If type 0x02 write the array length aswell
-				if(NanGet(object, bson->_binarySubTypeString)->Int32Value() == 0x02) {
+				if(NanGet(object, BINARY_SUBTYPE_PROPERTY_NAME)->Int32Value() == 0x02) {
 					this->WriteInt32(length);
 				}
 				// Write the actual data
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
-			else if(NanStr(bson->doubleString)->StrictEquals(constructorString))
+			else if(NanStr(DOUBLE_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_NUMBER);
-				this->WriteDouble(object, NanStr(bson->_doubleValueString));
+				this->WriteDouble(object, NanStr(DOUBLE_VALUE_PROPERTY_NAME));
 			}
-			else if(NanStr(bson->symbolString)->StrictEquals(constructorString))
+			else if(NanStr(SYMBOL_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_SYMBOL);
-				this->WriteLengthPrefixedString(NanGet(object, bson->_symbolValueString)->ToString());
+				this->WriteLengthPrefixedString(NanGet(object, SYMBOL_VALUE_PROPERTY_NAME)->ToString());
 			}
-			else if(NanStr(bson->codeString)->StrictEquals(constructorString))
+			else if(NanStr(CODE_CLASS_NAME)->StrictEquals(constructorString))
 			{
-				const Local<String>& function = NanGet(object, bson->_codeCodeString)->ToString();
-				const Local<Object>& scope = NanGet(object, bson->_codeScopeString)->ToObject();
+				const Local<String>& function = NanGet(object, CODE_CODE_PROPERTY_NAME)->ToString();
+				const Local<Object>& scope = NanGet(object, CODE_SCOPE_PROPERTY_NAME)->ToObject();
 
 				// For Node < 0.6.X use the GetPropertyNames
 	      #if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION < 6
@@ -290,7 +324,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 					this->WriteLengthPrefixedString(function->ToString());
 				}
 			}
-			else if(NanStr(bson->dbrefString)->StrictEquals(constructorString))
+			else if(NanStr(DBREF_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_OBJECT);
 
@@ -298,13 +332,13 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 
 				void* refType = this->BeginWriteType();
 				this->WriteData("$ref", 5);
-				SerializeValue(refType, NanGet(object, bson->_dbRefNamespaceString), false);
+				SerializeValue(refType, NanGet(object, DBREF_NAMESPACE_PROPERTY_NAME), false);
 
 				void* idType = this->BeginWriteType();
 				this->WriteData("$id", 4);
-				SerializeValue(idType, NanGet(object, bson->_dbRefOidString), false);
+				SerializeValue(idType, NanGet(object, DBREF_OID_PROPERTY_NAME), false);
 
-				const Local<Value>& refDbValue = NanGet(object, bson->_dbRefDbString);
+				const Local<Value>& refDbValue = NanGet(object, DBREF_DB_PROPERTY_NAME);
 				if(!refDbValue->IsUndefined())
 				{
 					void* dbType = this->BeginWriteType();
@@ -315,11 +349,11 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				this->WriteByte(0);
 				this->CommitSize(dbRefSize);
 			}
-			else if(NanStr(bson->minKeyString)->StrictEquals(constructorString))
+			else if(NanStr(MIN_KEY_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_MIN_KEY);
 			}
-			else if(NanStr(bson->maxKeyString)->StrictEquals(constructorString))
+			else if(NanStr(MAX_KEY_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_MAX_KEY);
 			}
@@ -448,8 +482,8 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 
 	// From JavaScript:
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
-	if(NanHas(returnObject, bson->_dbRefIdRefString)) {
-		Local<Value> argv[] = { NanGet(returnObject, bson->_dbRefRefString), NanGet(returnObject, bson->_dbRefIdRefString), NanGet(returnObject, bson->_dbRefDbRefString) };
+	if(NanHas(returnObject, DBREF_ID_REF_PROPERTY_NAME)) {
+		Local<Value> argv[] = { NanGet(returnObject, DBREF_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME) };
 		return Nan::New(bson->dbrefConstructor)->NewInstance(3, argv);
 	} else {
 		return returnObject;
@@ -600,34 +634,6 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 
 // statics
 Persistent<FunctionTemplate> BSON::constructor_template;
-Persistent<String> BSON::longString;
-Persistent<String> BSON::objectIDString;
-Persistent<String> BSON::binaryString;
-Persistent<String> BSON::codeString;
-Persistent<String> BSON::dbrefString;
-Persistent<String> BSON::symbolString;
-Persistent<String> BSON::doubleString;
-Persistent<String> BSON::timestampString;
-Persistent<String> BSON::minKeyString;
-Persistent<String> BSON::maxKeyString;
-Persistent<String> BSON::_bsontypeString;
-Persistent<String> BSON::_longLowString;
-Persistent<String> BSON::_longHighString;
-Persistent<String> BSON::_objectIDidString;
-Persistent<String> BSON::_binaryPositionString;
-Persistent<String> BSON::_binarySubTypeString;
-Persistent<String> BSON::_binaryBufferString;
-Persistent<String> BSON::_doubleValueString;
-Persistent<String> BSON::_symbolValueString;
-Persistent<String> BSON::_dbRefRefString;
-Persistent<String> BSON::_dbRefIdRefString;
-Persistent<String> BSON::_dbRefDbRefString;
-Persistent<String> BSON::_dbRefNamespaceString;
-Persistent<String> BSON::_dbRefDbString;
-Persistent<String> BSON::_dbRefOidString;
-Persistent<String> BSON::_codeCodeString;
-Persistent<String> BSON::_codeScopeString;
-Persistent<String> BSON::_toBSONString;
 
 BSON::BSON() : ObjectWrap()
 {
@@ -667,38 +673,7 @@ void BSON::Initialize(v8::Local<v8::Object> target) {
 
 	constructor_template.Reset(t);
 
-	// Setup pre-allocated comparision objects
-	_bsontypeString.Reset(NanStr("_bsontype"));
-	_longLowString.Reset(NanStr("low_"));
-	_longHighString.Reset(NanStr("high_"));
-	_objectIDidString.Reset(NanStr("id"));
-	_binaryPositionString.Reset(NanStr("position"));
-	_binarySubTypeString.Reset(NanStr("sub_type"));
-	_binaryBufferString.Reset(NanStr("buffer"));
-	_doubleValueString.Reset(NanStr("value"));
-	_symbolValueString.Reset(NanStr("value"));
-	_dbRefRefString.Reset(NanStr("$ref"));
-	_dbRefIdRefString.Reset(NanStr("$id"));
-	_dbRefDbRefString.Reset(NanStr("$db"));
-	_dbRefNamespaceString.Reset(NanStr("namespace"));
-	_dbRefDbString.Reset(NanStr("db"));
-	_dbRefOidString.Reset(NanStr("oid"));
-	_codeCodeString.Reset(NanStr("code"));
-	_codeScopeString.Reset(NanStr("scope"));
-	_toBSONString.Reset(NanStr("toBSON"));
-	longString.Reset(NanStr("Long"));
-	objectIDString.Reset(NanStr("ObjectID"));
-	binaryString.Reset(NanStr("Binary"));
-	codeString.Reset(NanStr("Code"));
-	dbrefString.Reset(NanStr("DBRef"));
-	symbolString.Reset(NanStr("Symbol"));
-	doubleString.Reset(NanStr("Double"));
-	timestampString.Reset(NanStr("Timestamp"));
-	minKeyString.Reset(NanStr("MinKey"));
-	maxKeyString.Reset(NanStr("MaxKey"));
-
 	target->ForceSet(NanStr("BSON"), t->GetFunction());
-
 }
 
 // Create a new instance of BSON and passing it the existing context
@@ -741,34 +716,34 @@ NAN_METHOD(BSON::New) {
 				Local<String> functionName = func->GetName()->ToString();
 
 				// Save the functions making them persistant handles (they don't get collected)
-				if(functionName->StrictEquals(NanStr(bson->longString))) {
+				if(functionName->StrictEquals(NanStr(LONG_CLASS_NAME))) {
 					bson->longConstructor.Reset(func);
 					foundClassesMask |= 1;
-				} else if(functionName->StrictEquals(NanStr(bson->objectIDString))) {
+				} else if(functionName->StrictEquals(NanStr(OBJECT_ID_CLASS_NAME))) {
 					bson->objectIDConstructor.Reset(func);
 					foundClassesMask |= 2;
-				} else if(functionName->StrictEquals(NanStr(bson->binaryString))) {
+				} else if(functionName->StrictEquals(NanStr(BINARY_CLASS_NAME))) {
 					bson->binaryConstructor.Reset(func);
 					foundClassesMask |= 4;
-				} else if(functionName->StrictEquals(NanStr(bson->codeString))) {
+				} else if(functionName->StrictEquals(NanStr(CODE_CLASS_NAME))) {
 					bson->codeConstructor.Reset(func);
 					foundClassesMask |= 8;
-				} else if(functionName->StrictEquals(NanStr(bson->dbrefString))) {
+				} else if(functionName->StrictEquals(NanStr(DBREF_CLASS_NAME))) {
 					bson->dbrefConstructor.Reset(func);
 					foundClassesMask |= 0x10;
-				} else if(functionName->StrictEquals(NanStr(bson->symbolString))) {
+				} else if(functionName->StrictEquals(NanStr(SYMBOL_CLASS_NAME))) {
 					bson->symbolConstructor.Reset(func);
 					foundClassesMask |= 0x20;
-				} else if(functionName->StrictEquals(NanStr(bson->doubleString))) {
+				} else if(functionName->StrictEquals(NanStr(DOUBLE_CLASS_NAME))) {
 					bson->doubleConstructor.Reset(func);
 					foundClassesMask |= 0x40;
-				} else if(functionName->StrictEquals(NanStr(bson->timestampString))) {
+				} else if(functionName->StrictEquals(NanStr(TIMESTAMP_CLASS_NAME))) {
 					bson->timestampConstructor.Reset(func);
 					foundClassesMask |= 0x80;
-				} else if(functionName->StrictEquals(NanStr(bson->minKeyString))) {
+				} else if(functionName->StrictEquals(NanStr(MIN_KEY_CLASS_NAME))) {
 					bson->minKeyConstructor.Reset(func);
 					foundClassesMask |= 0x100;
-				} else if(functionName->StrictEquals(NanStr(bson->maxKeyString))) {
+				} else if(functionName->StrictEquals(NanStr(MAX_KEY_CLASS_NAME))) {
 					bson->maxKeyConstructor.Reset(func);
 					foundClassesMask |= 0x200;
 				}
@@ -875,8 +850,8 @@ Local<Object> BSON::GetSerializeObject(const Local<Value>& argValue)
 {
 	Local<Object> object = argValue->ToObject();
 
-	if(NanHas(object, _toBSONString)) {
-		const Local<Value>& toBSON = NanGet(object, _toBSONString);
+	if(NanHas(object, TO_BSON_PROPERTY_NAME)) {
+		const Local<Value>& toBSON = NanGet(object, TO_BSON_PROPERTY_NAME);
 		if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
 
 		Local<Value> result = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
