@@ -35,7 +35,6 @@ using Nan::ObjectWrap;
 #define NanStr(x) (Unmaybe(Nan::New<String>(x)))
 #define NanHas(obj, key) (Nan::Has(obj, NanKey(key)).FromJust())
 #define NanGet(obj, key) (Unmaybe(Nan::Get(obj, NanKey(key))))
-#define NanAssignPersistent(persistent, value) persistent.Reset(value)
 // Unmaybe overloading to conviniently convert from Local/MaybeLocal/Maybe to Local/plain value
 template <class T>
 inline Local<T> Unmaybe(Local<T> h) {
@@ -43,10 +42,12 @@ inline Local<T> Unmaybe(Local<T> h) {
 }
 template <class T>
 inline Local<T> Unmaybe(Nan::MaybeLocal<T> h) {
+    assert(!h.IsEmpty());
     return h.ToLocalChecked();
 }
 template <class T>
 inline T Unmaybe(Nan::Maybe<T> h) {
+    assert(h.IsJust());
     return h.FromJust();
 }
 // NanKey overloading to conviniently convert to a propert key for object/array
@@ -98,7 +99,7 @@ template<typename T> class BSONSerializer;
 class BSON : public Nan::ObjectWrap {
 public:
 	BSON();
-	~BSON() {}
+	~BSON();
 
 	static void Initialize(Local<Object> target);
  	static NAN_METHOD(BSONDeserializeStream);
@@ -135,38 +136,38 @@ private:
 	Persistent<Function> maxKeyConstructor;
 
 	// Equality Objects
-	Persistent<String> longString;
-	Persistent<String> objectIDString;
-	Persistent<String> binaryString;
-	Persistent<String> codeString;
-	Persistent<String> dbrefString;
-	Persistent<String> symbolString;
-	Persistent<String> doubleString;
-	Persistent<String> timestampString;
-	Persistent<String> minKeyString;
-	Persistent<String> maxKeyString;
+	static Persistent<String> longString;
+	static Persistent<String> objectIDString;
+	static Persistent<String> binaryString;
+	static Persistent<String> codeString;
+	static Persistent<String> dbrefString;
+	static Persistent<String> symbolString;
+	static Persistent<String> doubleString;
+	static Persistent<String> timestampString;
+	static Persistent<String> minKeyString;
+	static Persistent<String> maxKeyString;
 
 	// Equality speed up comparison objects
-	Persistent<String> _bsontypeString;
-	Persistent<String> _longLowString;
-	Persistent<String> _longHighString;
-	Persistent<String> _objectIDidString;
-	Persistent<String> _binaryPositionString;
-	Persistent<String> _binarySubTypeString;
-	Persistent<String> _binaryBufferString;
-	Persistent<String> _doubleValueString;
-	Persistent<String> _symbolValueString;
+	static Persistent<String> _bsontypeString;
+	static Persistent<String> _longLowString;
+	static Persistent<String> _longHighString;
+	static Persistent<String> _objectIDidString;
+	static Persistent<String> _binaryPositionString;
+	static Persistent<String> _binarySubTypeString;
+	static Persistent<String> _binaryBufferString;
+	static Persistent<String> _doubleValueString;
+	static Persistent<String> _symbolValueString;
 
-	Persistent<String> _dbRefRefString;
-	Persistent<String> _dbRefIdRefString;
-	Persistent<String> _dbRefDbRefString;
-	Persistent<String> _dbRefNamespaceString;
-	Persistent<String> _dbRefDbString;
-	Persistent<String> _dbRefOidString;
+	static Persistent<String> _dbRefRefString;
+	static Persistent<String> _dbRefIdRefString;
+	static Persistent<String> _dbRefDbRefString;
+	static Persistent<String> _dbRefNamespaceString;
+	static Persistent<String> _dbRefDbString;
+	static Persistent<String> _dbRefOidString;
 
-	Persistent<String> _codeCodeString;
-	Persistent<String> _codeScopeString;
-	Persistent<String> _toBSONString;
+	static Persistent<String> _codeCodeString;
+	static Persistent<String> _codeScopeString;
+	static Persistent<String> _toBSONString;
 
 	Local<Object> GetSerializeObject(const Local<Value>& object);
 
