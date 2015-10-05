@@ -7,12 +7,12 @@ try {
 	} else if(process.platform == "win32" && process.arch == "ia32") {
 	  bson = require('./win32/ia32/bson');
 	} else {
-	  bson = require('../build/Release/bson');
+	  bson = require('bindings')('bson.node');
 	}
 } catch(err) {
 	// Attempt to load the release bson version
 	try {
-		bson = require('../build/Release/bson');
+		bson = require('bindings')('bson.node');
 	} catch (err) {
 		throw new Error("js-bson: Failed to load c++ bson extension, using pure JS version");
 	}
