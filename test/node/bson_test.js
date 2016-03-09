@@ -3,8 +3,8 @@ var BSON = require('../..');
 var testCase = require('nodeunit').testCase,
   Buffer = require('buffer').Buffer,
   fs = require('fs'),
-  BinaryParser = require('../../lib/bson/binary_parser').BinaryParser, 
-  Code = require('../../lib/bson/code').Code, 
+  BinaryParser = require('../../lib/bson/binary_parser').BinaryParser,
+  Code = require('../../lib/bson/code').Code,
   Binary = require('../../lib/bson/binary').Binary,
   Timestamp = require('../../lib/bson/timestamp').Timestamp,
   Long = require('../../lib/bson/long').Long,
@@ -301,14 +301,30 @@ exports['Should Correctly Serialize and Deserialize Object'] = function(test) {
 /**
  * @ignore
  */
-exports['Should Correctly Serialize undefined as null and Deserialize it as null value'] = function(test) {
+exports['Should correctly ignore undefined values'] = function(test) {
   var doc = {doc: {notdefined: undefined}};
+  // var doc = {doc: 1, a: undefined};
   var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
-
   var serialized_data2 = new Buffer(new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).calculateObjectSize(doc, false, true));
   new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serializeWithBufferAndIndex(doc, false, serialized_data2, 0);
   assertBuffersEqual(test, serialized_data, serialized_data2, 0);
-  test.deepEqual(null, new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data).doc.notdefined);
+  var doc1 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
+  test.ok(doc1.notdefined == undefined);
+  test.done();
+}
+
+/**
+ * @ignore
+ */
+exports['Should correctly serialize undefined array entries as null values'] = function(test) {
+  var doc = {doc: {notdefined: undefined}, a: [1, 2, undefined, 3]};
+  var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
+  var serialized_data2 = new Buffer(new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).calculateObjectSize(doc, false, true));
+  new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serializeWithBufferAndIndex(doc, false, serialized_data2, 0);
+  assertBuffersEqual(test, serialized_data, serialized_data2, 0);
+  var doc1 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
+  console.dir(doc1)
+  test.ok(doc1.notdefined == undefined);
   test.done();
 }
 
@@ -1481,7 +1497,7 @@ exports['Should correctly serialize a given javascript object using a bson insta
 
   // Deserialize the object with eval for the functions caching the functions
   deserializedDoc = bson.deserialize(buffer, {evalFunctions:true, cacheFunctions:true});
-  
+
   // Validate the correctness
   test.ok(deserializedDoc.func instanceof Code);
   test.equal(1, deserializedDoc.a);
@@ -1621,6 +1637,40 @@ exports['Should fail to create ObjectID due to illegal hex code'] = function(tes
   test.equal(true, ObjectID.isValid("zzzzzzzzzzzz"));
   test.equal(false, ObjectID.isValid("zzzzzzzzzzzzzzzzzzzzzzzz"));
   test.equal(true, ObjectID.isValid("000000000000000000000000"));
+  test.done();
+}
+
+
+/**
+ * @ignore
+ */
+exports['Should not leak memory'] = function(test) {
+  var doc = {
+   "_id" : new ObjectID("4e886e687ff7ef5e00000162"),
+   "str" : "foreign",
+   "type" : 2,
+   "timestamp" : ISODate("2011-10-02T14:00:08.383Z"),
+   "links" : [
+     "http://www.reddit.com/r/worldnews/comments/kybm0/uk_home_secretary_calls_for_the_scrapping_of_the/"
+   ]
+  }
+
+  var mem1 = process.memoryUsage();
+  var N = 2000;
+  for (var i=1; i<=N; ++i) {
+    if (i % 100 === 0) {
+        process.stdout.write('\r  ---> leak test ... ' + i + '/' + N);
+    }
+    var serialized_data = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serialize(doc, false, true);
+    var doc2 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
+    test.deepEqual(doc, doc2)
+  }
+  process.stdout.write('\r');
+  var mem2 = process.memoryUsage();
+  var rss_diff = mem2.rss - mem1.rss;
+  console.log('  ---> leak test - RSS diff', rss_diff);
+  // check that process memory did not bloat "more than expected"
+  test.ok(rss_diff < 32 * 1024 * 1024);
   test.done();
 }
 

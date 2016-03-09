@@ -14,13 +14,9 @@
           }
         }],
         ['OS=="win"', {
-          'configurations': {
-            'Release': {
-              'msvs_settings': {
-                'VCCLCompilerTool': {
-                  'ExceptionHandling': 1
-                }
-              }
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'ExceptionHandling': 1
             }
           }
         }]

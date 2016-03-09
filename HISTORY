@@ -1,3 +1,16 @@
+0.1.13 2015-10-05
+-----------------
+- Upgrade to nan 2.0.9 (Issue #27, https://github.com/guymguym)
+- Removed pre-gyp code as no longer needed.
+
+0.1.12 2015-08-06
+-----------------
+- Undefined fields serialized as null values in arrays.
+
+0.1.11 2015-08-06
+-----------------
+- Undefined fields are omitted from serialization.
+
 0.1.10 2015-06-17
 -----------------
 - No longer print to console.error if driver did not load correctly.
