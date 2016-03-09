@@ -11,6 +11,9 @@
 #define USE_MISALIGNED_MEMORY_ACCESS 1
 #endif
 
+const int _is_bigendian = 1;
+#define is_bigendian() ( (*(char*)&_is_bigendian) == 0 )
+
 #include <node.h>
 #include <node_object_wrap.h>
 #include <v8.h>
@@ -199,19 +202,23 @@ public:
 #if USE_MISALIGNED_MEMORY_ACCESS
 	void	WriteInt32(int32_t value)	{
 		if((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
-		*reinterpret_cast<int32_t*>(p) = value;
+		*reinterpret_cast<int32_t*>(p) = is_bigendian() ? __builtin_bswap32(value) : value;
 		p += 4;
 	}
 
 	void	WriteInt64(int64_t value)	{
 		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
-		*reinterpret_cast<int64_t*>(p) = value;
+		*reinterpret_cast<int64_t*>(p) = is_bigendian() ? __builtin_bswap64(value) : value;
 		p += 8;
 	}
 
 	void	WriteDouble(double value) {
 		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
 		*reinterpret_cast<double*>(p) = value;
+		if (is_bigendian()){
+			*reinterpret_cast<uint64_t*>(p) = __builtin_bswap64(*reinterpret_cast<int64_t*>(p));
+			value = *reinterpret_cast<double*>(p);
+		}
 		p += 8;
 	}
 #else
@@ -298,7 +305,8 @@ public:
 
 #if USE_MISALIGNED_MEMORY_ACCESS
 	void	CommitSize(void* beginPoint) {
-		*reinterpret_cast<int32_t*>(beginPoint) = (int32_t) (p - (char*) beginPoint);
+		int32_t value =  (int32_t) (p - (char*) beginPoint);
+		*reinterpret_cast<int32_t*>(beginPoint) = is_bigendian() ? __builtin_bswap32(value) : value;
 	}
 #else
 	void	CommitSize(void* beginPoint) {
@@ -356,10 +364,41 @@ public:
 
 	unsigned char	ReadByte()			{ return *reinterpret_cast<unsigned char*>(p++); }
 #if USE_MISALIGNED_MEMORY_ACCESS
-	int32_t			ReadInt32()			{ int32_t returnValue = *reinterpret_cast<int32_t*>(p); p += 4; return returnValue; }
-	uint32_t		ReadUInt32()		{ uint32_t returnValue = *reinterpret_cast<uint32_t*>(p); p += 4; return returnValue; }
-	int64_t			ReadInt64()			{ int64_t returnValue = *reinterpret_cast<int64_t*>(p); p += 8; return returnValue; }
-	double			ReadDouble()		{ double returnValue = *reinterpret_cast<double*>(p); p += 8; return returnValue; }
+	int32_t			ReadInt32()			{ 
+		int32_t returnValue = *reinterpret_cast<int32_t*>(p); p += 4; 
+		if (is_bigendian()) { 
+			return __builtin_bswap32(returnValue); 
+		} else { 
+			return returnValue; 
+		} 
+	}
+	uint32_t		ReadUInt32()		{ 
+		uint32_t returnValue = *reinterpret_cast<uint32_t*>(p); p += 4;  
+		if (is_bigendian()) { 
+			return __builtin_bswap32(returnValue); 
+		} else { 
+			return returnValue; 
+		} 
+	}
+	int64_t			ReadInt64()			{ 
+		int64_t returnValue = *reinterpret_cast<int64_t*>(p); p += 8; 
+		if (is_bigendian()) { 
+			return __builtin_bswap64(returnValue); 
+		} else { 
+			return returnValue; 
+		} 
+	}
+	double			ReadDouble()		{ 
+		double returnValue;
+		if (is_bigendian()) {
+			uint64_t tmp = __builtin_bswap64(*reinterpret_cast<uint64_t*>(p));
+			returnValue = *reinterpret_cast<double*>(&tmp);
+		}else{
+			returnValue = *reinterpret_cast<double*>(p);
+		}
+    	p += 8;
+    	return returnValue;
+	}
 #else
 	int32_t			ReadInt32()			{ int32_t returnValue; memcpy(&returnValue, p, 4); p += 4; return returnValue; }
 	uint32_t		ReadUInt32()		{ uint32_t returnValue; memcpy(&returnValue, p, 4); p += 4; return returnValue; }
