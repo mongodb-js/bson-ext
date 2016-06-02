@@ -366,7 +366,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
        Local<Object> buffer = ObjectWrap::Unwrap<Buffer>(value->ToObject());
 			 uint32_t length = object->length();
 	    #else
-			 uint32_t length = node::Buffer::Length(value->ToObject());
+			 uint32_t length = (uint32_t)node::Buffer::Length(value->ToObject());
 	    #endif
 
 			this->WriteInt32(length);
@@ -595,7 +595,8 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 					p -= 8;
 					// Read the 64 bit value
 					int64_t finalValue = (int64_t) ReadInt64();
-					return Nan::New<Number>(finalValue);
+					// JS has no int64 type.
+					return Nan::New<Number>(static_cast<double>(finalValue));
 				}
 			}
 
@@ -681,7 +682,7 @@ NAN_METHOD(BSON::New) {
 	Nan::HandleScope scope;
 
 	// Var maximum bson size
-	size_t maxBSONSize = MAX_BSON_SIZE;
+	uint32_t maxBSONSize = MAX_BSON_SIZE;
 
 	// Check that we have an array
 	if(info.Length() >= 1 && info[0]->IsArray()) {
@@ -919,7 +920,7 @@ NAN_METHOD(BSON::BSONSerialize) {
 	// If we have 3 arguments
 	if(info.Length() == 3 || info.Length() == 4) {
 		// NewBuffer takes ownership on the memory, so no need to free the final allocation
-		Local<Object> buffer = Unmaybe(Nan::NewBuffer(serialized_object, object_size));
+		Local<Object> buffer = Unmaybe(Nan::NewBuffer(serialized_object, (uint32_t)object_size));
 		info.GetReturnValue().Set(buffer);
 	} else {
 		Local<Value> bin_value = Nan::Encode(serialized_object, object_size)->ToString();

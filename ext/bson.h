@@ -19,6 +19,10 @@ const int _is_bigendian = 1;
 #include <v8.h>
 #include "nan.h"
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 using v8::Local;
 using v8::Value;
 using v8::Integer;
@@ -202,13 +206,21 @@ public:
 #if USE_MISALIGNED_MEMORY_ACCESS
 	void	WriteInt32(int32_t value)	{
 		if((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+#if defined (_MSC_VER)
+		*reinterpret_cast<int32_t*>(p) = is_bigendian() ? _byteswap_ulong(value) : value;
+#elif defined (__GNUC__)
 		*reinterpret_cast<int32_t*>(p) = is_bigendian() ? __builtin_bswap32(value) : value;
+#endif
 		p += 4;
 	}
 
 	void	WriteInt64(int64_t value)	{
 		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
+#if defined (_MSC_VER)
+		*reinterpret_cast<int64_t*>(p) = is_bigendian() ? _byteswap_uint64(value) : value;
+#elif defined (__GNUC__)
 		*reinterpret_cast<int64_t*>(p) = is_bigendian() ? __builtin_bswap64(value) : value;
+#endif
 		p += 8;
 	}
 
@@ -216,7 +228,11 @@ public:
 		if((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
 		*reinterpret_cast<double*>(p) = value;
 		if (is_bigendian()){
+#if defined (_MSC_VER)
+			*reinterpret_cast<uint64_t*>(p) = _byteswap_uint64(*reinterpret_cast<int64_t*>(p));
+#elif defined (__GNUC__)
 			*reinterpret_cast<uint64_t*>(p) = __builtin_bswap64(*reinterpret_cast<int64_t*>(p));
+#endif
 			value = *reinterpret_cast<double*>(p);
 		}
 		p += 8;
@@ -306,7 +322,11 @@ public:
 #if USE_MISALIGNED_MEMORY_ACCESS
 	void	CommitSize(void* beginPoint) {
 		int32_t value =  (int32_t) (p - (char*) beginPoint);
+#if defined(_MSC_VER)
+		*reinterpret_cast<int32_t*>(beginPoint) = is_bigendian() ? _byteswap_ulong(value) : value;
+#elif defined(__GNUC__)
 		*reinterpret_cast<int32_t*>(beginPoint) = is_bigendian() ? __builtin_bswap32(value) : value;
+#endif
 	}
 #else
 	void	CommitSize(void* beginPoint) {
@@ -364,40 +384,56 @@ public:
 
 	unsigned char	ReadByte()			{ return *reinterpret_cast<unsigned char*>(p++); }
 #if USE_MISALIGNED_MEMORY_ACCESS
-	int32_t			ReadInt32()			{ 
-		int32_t returnValue = *reinterpret_cast<int32_t*>(p); p += 4; 
-		if (is_bigendian()) { 
-			return __builtin_bswap32(returnValue); 
-		} else { 
-			return returnValue; 
-		} 
+	int32_t			ReadInt32()			{
+		int32_t returnValue = *reinterpret_cast<int32_t*>(p); p += 4;
+		if (is_bigendian()) {
+#if defined(_MSC_VER)
+			return _byteswap_ulong(returnValue);
+#elif defined(__GNUC__)
+			return __builtin_bswap32(returnValue);
+#endif
+		} else {
+			return returnValue;
+		}
 	}
-	uint32_t		ReadUInt32()		{ 
-		uint32_t returnValue = *reinterpret_cast<uint32_t*>(p); p += 4;  
-		if (is_bigendian()) { 
-			return __builtin_bswap32(returnValue); 
-		} else { 
-			return returnValue; 
-		} 
+	uint32_t		ReadUInt32()		{
+		uint32_t returnValue = *reinterpret_cast<uint32_t*>(p); p += 4;
+		if (is_bigendian()) {
+#if defined(_MSC_VER)
+			return _byteswap_ulong(returnValue);
+#elif defined(__GNUC__)
+			return __builtin_bswap32(returnValue);
+#endif
+		} else {
+			return returnValue;
+		}
 	}
-	int64_t			ReadInt64()			{ 
-		int64_t returnValue = *reinterpret_cast<int64_t*>(p); p += 8; 
-		if (is_bigendian()) { 
-			return __builtin_bswap64(returnValue); 
-		} else { 
-			return returnValue; 
-		} 
+	int64_t			ReadInt64()			{
+		int64_t returnValue = *reinterpret_cast<int64_t*>(p); p += 8;
+		if (is_bigendian()) {
+#if defined(_MSC_VER)
+			return _byteswap_uint64(returnValue);
+#elif defined(__GNUC__)
+			return __builtin_bswap64(returnValue);
+#endif
+		} else {
+			return returnValue;
+		}
 	}
-	double			ReadDouble()		{ 
+	double			ReadDouble()		{
 		double returnValue;
 		if (is_bigendian()) {
+#if defined(_MSC_VER)
+			uint64_t tmp = _byteswap_uint64(*reinterpret_cast<uint64_t*>(p));
+#elif defined(__GNUC__)
 			uint64_t tmp = __builtin_bswap64(*reinterpret_cast<uint64_t*>(p));
+#endif
 			returnValue = *reinterpret_cast<double*>(&tmp);
 		}else{
 			returnValue = *reinterpret_cast<double*>(p);
 		}
-    	p += 8;
-    	return returnValue;
+		p += 8;
+		return returnValue;
 	}
 #else
 	int32_t			ReadInt32()			{ int32_t returnValue; memcpy(&returnValue, p, 4); p += 4; return returnValue; }
