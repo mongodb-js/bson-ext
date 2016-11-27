@@ -3,9 +3,9 @@ var BSON = require('../..');
 var testCase = require('nodeunit').testCase,
   Buffer = require('buffer').Buffer,
   fs = require('fs'),
-  Code = require('../../lib/bson/code').Code, 
+  Code = require('../../lib/bson/code').Code,
   Binary = require('../../lib/bson/binary').Binary,
-  BinaryParser = require('../../lib/bson/binary_parser').BinaryParser, 
+  BinaryParser = require('../binary_parser').BinaryParser,
   Timestamp = require('../../lib/bson/timestamp').Timestamp,
   Long = require('../../lib/bson/long').Long,
   ObjectID = require('../../lib/bson/objectid').ObjectID,
@@ -223,8 +223,13 @@ exports['Should Correctly Serialize and Deserialize a Date'] = function(test) {
  * @ignore
  */
 exports['Should Correctly Serialize and Deserialize Oid'] = function(test) {
-  var doc = {doc: new ObjectID()}
-  var serialized_data = bson.serialize(doc)
+  var doc = {doc: new ObjectID("ff44ff44ff44ff44ff44ff44")}
+  var serialized_data = bson.serialize(doc, true, true)
+  // console.log("========================================= ")
+  // console.log(`[0] = ${serialized_data.toString('hex')}`)
+  // console.log(`[1] = ${doc.doc.toHexString()}`)
+  // console.log(`[2] = ${bson.deserialize(serialized_data).doc.toHexString()}`)
+  // console.log(`[3] = ${serialized_data instanceof Buffer}`)
   assert.deepEqual(doc.doc.toHexString(), bson.deserialize(serialized_data).doc.toHexString())
   test.done();
 }
@@ -318,7 +323,7 @@ exports['Should Correctly fail due to attempting serialization of illegal key va
     v[i] = 1;
   v[0] = 0x0A;
   var doc = {};
-  doc[k.toString()] = v.toString();  
+  doc[k.toString()] = v.toString();
 
   // Should throw due to null character
   try {

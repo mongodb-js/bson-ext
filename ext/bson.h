@@ -380,7 +380,7 @@ public:
 	uint32_t		ReadIntegerString();
 	int32_t			ReadRegexOptions();
 	Local<String>	ReadString();
-	Local<String>	ReadObjectId();
+	Local<Object>	ReadObjectId();
 
 	unsigned char	ReadByte()			{ return *reinterpret_cast<unsigned char*>(p++); }
 #if USE_MISALIGNED_MEMORY_ACCESS

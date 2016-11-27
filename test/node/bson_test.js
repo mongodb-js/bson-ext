@@ -3,7 +3,7 @@ var BSON = require('../..');
 var testCase = require('nodeunit').testCase,
   Buffer = require('buffer').Buffer,
   fs = require('fs'),
-  BinaryParser = require('../../lib/bson/binary_parser').BinaryParser,
+  BinaryParser = require('../binary_parser').BinaryParser,
   Code = require('../../lib/bson/code').Code,
   Binary = require('../../lib/bson/binary').Binary,
   Timestamp = require('../../lib/bson/timestamp').Timestamp,
@@ -323,7 +323,6 @@ exports['Should correctly serialize undefined array entries as null values'] = f
   new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).serializeWithBufferAndIndex(doc, false, serialized_data2, 0);
   assertBuffersEqual(test, serialized_data, serialized_data2, 0);
   var doc1 = new BSON([Long, ObjectID, Binary, Code, DBRef, Symbol, Double, Timestamp, MaxKey, MinKey]).deserialize(serialized_data);
-  console.dir(doc1)
   test.ok(doc1.notdefined == undefined);
   test.done();
 }

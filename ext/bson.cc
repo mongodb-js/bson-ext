@@ -84,10 +84,18 @@ static const char* TO_BSON_PROPERTY_NAME = "toBSON";
 void DataStream::WriteObjectId(const Local<Object>& object, const Local<String>& key)
 {
 	uint16_t buffer[12];
-	NanGet(object, key)->ToString()->Write(buffer, 0, 12);
-	for(uint32_t i = 0; i < 12; ++i)
-	{
-		*p++ = (char) buffer[i];
+	Nan::MaybeLocal<v8::Value> obj = NanGet(object, key);
+
+	if(node::Buffer::HasInstance(obj.ToLocalChecked())) {
+		uint32_t length = (uint32_t)node::Buffer::Length(obj.ToLocalChecked());
+		this->WriteData(node::Buffer::Data(obj.ToLocalChecked()), length);
+	} else {
+		NanGet(object, key)->ToString()->Write(buffer, 0, 12);
+
+		for(uint32_t i = 0; i < 12; ++i)
+		{
+			*p++ = (char) buffer[i];
+		}
 	}
 }
 
@@ -449,13 +457,13 @@ Local<String> BSONDeserializer::ReadString() {
 	return Unmaybe(Nan::New<String>(start, length-1));
 }
 
-Local<String> BSONDeserializer::ReadObjectId() {
-	uint16_t objectId[12];
-	for(size_t i = 0; i < 12; ++i) {
-		objectId[i] = *reinterpret_cast<unsigned char*>(p++);
-	}
-
-	return Unmaybe(Nan::New<String>(objectId, 12));
+Local<Object> BSONDeserializer::ReadObjectId() {
+	// Copy the data into a buffer
+	Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, 12));
+	// Move pointer
+	p += 12;
+	// Return the buffer
+	return Unmaybe(buffer);
 }
 
 Local<Value> BSONDeserializer::DeserializeDocument(bool promoteLongs) {
