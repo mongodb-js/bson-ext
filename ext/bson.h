@@ -185,6 +185,7 @@ public:
 
 	// Do nothing. CheckKey is implemented for DataStream
 	void	CheckKey(const Local<String>&)							{ }
+  void	CheckForIllegalString(const Local<String>&)							{ }
 
 private:
 	size_t	count;
@@ -344,6 +345,7 @@ public:
 	}
 
 	void	CheckKey(const Local<String>& keyName);
+  void	CheckForIllegalString(const Local<String>& keyName);
 
 public:
 	char *const	destinationBuffer;		// base, never changes

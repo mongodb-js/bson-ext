@@ -146,6 +146,24 @@ void DataStream::CheckKey(const Local<String>& keyName)
 	}
 }
 
+void DataStream::CheckForIllegalString(const Local<String>& keyName)
+{
+	size_t keyLength = keyName->Utf8Length();
+	if(keyLength == 0) return;
+
+	// Allocate space for the key, do not need to zero terminate as WriteUtf8 does it
+	char* keyStringBuffer = (char*) alloca(keyLength + 1);
+	// Write the key to the allocated buffer
+	keyName->WriteUtf8(keyStringBuffer);
+	// Check for the zero terminator
+	char* terminator = strchr(keyStringBuffer, 0x00);
+
+	// If the location is not at the end of the string we've got an illegal 0x00 byte somewhere
+	if(terminator != &keyStringBuffer[keyLength]) {
+		ThrowAllocatedStringException(64+keyLength, "key %s must not contain null bytes", keyStringBuffer);
+	}
+}
+
 template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value>& value)
 {
 	void* documentSize = this->BeginWriteSize();
@@ -259,9 +277,15 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	{
 		this->CommitType(typeLocation, BSON_TYPE_REGEXP);
 		const Local<RegExp>& regExp = Local<RegExp>::Cast(value);
+		const Local<String> regExpString = regExp->GetSource()->ToString();
 
-		this->WriteString(regExp->GetSource());
+		// Validate if the string is valid
+		this->CheckForIllegalString(regExpString);
 
+		// Write the regular expression string
+		this->WriteString(regExpString);
+
+		// Unpack the flags
 		int flags = regExp->GetFlags();
 		if(flags & RegExp::kGlobal) this->WriteByte('s');
 		if(flags & RegExp::kIgnoreCase) this->WriteByte('i');
@@ -393,10 +417,14 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				this->CommitType(typeLocation, BSON_TYPE_REGEXP);
 				// Get the pattern string
 				Local<String> pattern = NanGet(object, REGEX_PATTERN_PROPERTY_NAME)->ToString();
+				// Validate if the pattern is valid
+				this->CheckForIllegalString(pattern);
 				// Write the 0 terminated string
 				this->WriteString(pattern);
 				// Get the options string
 				Local<String> options = NanGet(object, REGEX_OPTIONS_PROPERTY_NAME)->ToString();
+				// Validate if the options is valid
+				this->CheckForIllegalString(options);
 				// Write the 0 terminated string
 				this->WriteString(options);
 			}
