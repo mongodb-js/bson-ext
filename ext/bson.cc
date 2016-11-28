@@ -60,6 +60,7 @@ static const char* MIN_KEY_CLASS_NAME = "MinKey";
 static const char* MAX_KEY_CLASS_NAME = "MaxKey";
 static const char* REGEXP_CLASS_NAME = "BSONRegExp";
 static const char* DECIMAL128_CLASS_NAME = "Decimal128";
+static const char* INT32_CLASS_NAME = "Int32";
 
 // Equality speed up comparison objects
 static const char* BSONTYPE_PROPERTY_NAME = "_bsontype";
@@ -69,9 +70,10 @@ static const char* OBJECT_ID_ID_PROPERTY_NAME = "id";
 static const char* BINARY_POSITION_PROPERTY_NAME = "position";
 static const char* BINARY_SUBTYPE_PROPERTY_NAME = "sub_type";
 static const char* BINARY_BUFFER_PROPERTY_NAME = "buffer";
-static const char* DOUBLE_VALUE_PROPERTY_NAME = "value";
 static const char* SYMBOL_VALUE_PROPERTY_NAME = "value";
 static const char* DECIMAL128_VALUE_PROPERTY_NAME = "bytes";
+static const char* DOUBLE_VALUE_PROPERTY_NAME = "value";
+static const char* INT32_VALUE_PROPERTY_NAME = "value";
 
 static const char* DBREF_REF_PROPERTY_NAME = "$ref";
 static const char* DBREF_ID_REF_PROPERTY_NAME = "$id";
@@ -325,6 +327,11 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				this->CommitType(typeLocation, BSON_TYPE_NUMBER);
 				this->WriteDouble(object, NanStr(DOUBLE_VALUE_PROPERTY_NAME));
 			}
+			else if(NanStr(INT32_CLASS_NAME)->StrictEquals(constructorString))
+			{
+				this->CommitType(typeLocation, BSON_TYPE_INT);
+				this->WriteInt32(object, NanStr(INT32_VALUE_PROPERTY_NAME));
+			}
 			else if(NanStr(SYMBOL_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_SYMBOL);
@@ -442,26 +449,28 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 }
 
 // Data points to start of element list, length is length of entire document including '\0' but excluding initial size
-BSONDeserializer::BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers)
+BSONDeserializer::BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues)
 : bson(aBson),
   pStart(data),
   p(data),
   pEnd(data + length - 1),
 	bsonRegExp(bsonRegExp),
 	promoteLongs(promoteLongs),
-	promoteBuffers(promoteBuffers)
+	promoteBuffers(promoteBuffers),
+	promoteValues(promoteValues)
 {
 	if(*pEnd != '\0') ThrowAllocatedStringException(64, "Missing end of document marker '\\0'");
 }
 
-BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers)
+BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues)
 : bson(parentSerializer.bson),
   pStart(parentSerializer.p),
   p(parentSerializer.p),
   pEnd(parentSerializer.p + length - 1),
 	bsonRegExp(bsonRegExp),
 	promoteLongs(promoteLongs),
-	promoteBuffers(promoteBuffers)
+	promoteBuffers(promoteBuffers),
+	promoteValues(promoteValues)
 {
 	parentSerializer.p += length;
 	if(pEnd > parentSerializer.pEnd) ThrowAllocatedStringException(64, "Child document exceeds parent's bounds");
@@ -520,7 +529,7 @@ Local<Value> BSONDeserializer::DeserializeDocument() {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
-	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers);
+	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 	return documentDeserializer.DeserializeDocumentInternal();
 }
 
@@ -553,7 +562,7 @@ Local<Value> BSONDeserializer::DeserializeArray() {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Array Document is less than 5 bytes");
 
-	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers);
+	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 	return documentDeserializer.DeserializeArrayInternal();
 }
 
@@ -578,11 +587,29 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 	case BSON_TYPE_STRING:
 		return ReadString();
 
-	case BSON_TYPE_INT:
-		return Nan::New<Integer>(ReadInt32());
+	case BSON_TYPE_INT: {
+		Local<Value> value = Nan::New<Integer>(ReadInt32());
 
-	case BSON_TYPE_NUMBER:
-		return Nan::New<Number>(ReadDouble());
+		if (!promoteValues) {
+			Local<Value> argv[] = { value };
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->int32Constructor), 1, argv);
+			return obj.ToLocalChecked();
+		}
+
+		return value;
+	}
+
+	case BSON_TYPE_NUMBER: {
+		Local<Value> value = Nan::New<Number>(ReadDouble());
+
+		if (!promoteValues) {
+			Local<Value> argv[] = { value };
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->doubleConstructor), 1, argv);
+			return obj.ToLocalChecked();
+		}
+
+		return value;
+	}
 
 	case BSON_TYPE_NULL:
 		return Nan::Null();
@@ -678,17 +705,6 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 				// Return the value
 				return result->ToObject();
 		}
-		// if(NanHas(object, TO_BSON_PROPERTY_NAME)) {
-		// 	const Local<Value>& toBSON = NanGet(object, TO_BSON_PROPERTY_NAME);
-		// 	if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
-		//
-		// 	Local<Value> result = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
-		// 	if(!result->IsObject()) ThrowAllocatedStringException(64, "toBSON function did not return an object");
-		// 	return result->ToObject();
-		// } else {
-		// 	return object;
-		// }
-
 
 		return object;
 	}
@@ -763,6 +779,7 @@ BSON::~BSON()
 	// dispose persistent handles
 	buffer.Reset();
 	longConstructor.Reset();
+	int32Constructor.Reset();
 	objectIDConstructor.Reset();
 	binaryConstructor.Reset();
 	decimalConstructor.Reset();
@@ -871,11 +888,14 @@ NAN_METHOD(BSON::New) {
 				} else if(functionName->StrictEquals(NanStr(DECIMAL128_CLASS_NAME))) {
 					bson->decimalConstructor.Reset(func);
 					foundClassesMask |= 0x800;
+				} else if(functionName->StrictEquals(NanStr(INT32_CLASS_NAME))) {
+					bson->int32Constructor.Reset(func);
+					foundClassesMask |= 0x1000;
 				}
 			}
 
 			// Check if we have the right number of constructors otherwise throw an error
-			if(foundClassesMask != 0xfff) {
+			if(foundClassesMask != 0x1fff) {
 				delete bson;
 				return Nan::ThrowError("Missing function constructor for either [Long/ObjectID/Binary/Code/DbRef/Symbol/Double/Timestamp/MinKey/MaxKey/BSONRegExp/Decimal128]");
 			} else {
@@ -906,6 +926,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 	bool promoteLongs = true;
 	bool promoteBuffers = false;
 	bool bsonRegExp = false;
+	bool promoteValues = true;
 
 	// If we have an options object
 	if(info.Length() == 2 && info[1]->IsObject()) {
@@ -937,6 +958,15 @@ NAN_METHOD(BSON::BSONDeserialize) {
 				return Nan::ThrowError("bsonRegExp argument must be a boolean");
 			}
 		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "promoteValues")) {
+			if(NanGet(options, "promoteValues")->IsBoolean()) {
+				promoteValues = NanGet(options, "promoteValues")->ToBoolean()->Value();
+			} else {
+				return Nan::ThrowError("promoteValues argument must be a boolean");
+			}
+		}
 	}
 
 	// Define pointer to data
@@ -960,7 +990,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		if(length < 5) return Nan::ThrowError("corrupt bson message < 5 bytes long");
 
 		try {
-			BSONDeserializer deserializer(bson, data, length, bsonRegExp, promoteLongs, promoteBuffers);
+			BSONDeserializer deserializer(bson, data, length, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 			info.GetReturnValue().Set(deserializer.DeserializeDocument());
 		} catch(char* exception) {
 			Local<String> error = NanStr(exception);
@@ -980,7 +1010,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		Nan::DecodeWrite(data, len, info[0]);
 
 		try {
-			BSONDeserializer deserializer(bson, data, len, bsonRegExp, promoteLongs, promoteBuffers);
+			BSONDeserializer deserializer(bson, data, len, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 			// deserializer.promoteLongs = promoteLongs;
 			Local<Value> result = deserializer.DeserializeDocument();
 			free(data);
@@ -1249,6 +1279,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	bool promoteLongs = true;
 	bool promoteBuffers = false;
 	bool bsonRegExp = false;
+	bool promoteValues = true;
 
 	// Check for the value promoteLongs in the options object
 	if(info.Length() == 6) {
@@ -1276,7 +1307,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	// Fetch the documents
 	Local<Object> documents = info[3]->ToObject();
 
-	BSONDeserializer deserializer(bson, data+index, length-index, bsonRegExp, promoteLongs, promoteBuffers);
+	BSONDeserializer deserializer(bson, data+index, length-index, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 	for(uint32_t i = 0; i < numberOfDocuments; i++) {
 		try {
 			documents->Set(i + resultIndex, deserializer.DeserializeDocument());

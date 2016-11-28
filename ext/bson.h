@@ -134,6 +134,7 @@ private:
 	// BSON type instantiate functions
 	Nan::Persistent<Function> longConstructor;
 	Nan::Persistent<Function> objectIDConstructor;
+  Nan::Persistent<Function> int32Constructor;
   Nan::Persistent<Function> decimalConstructor;
 	Nan::Persistent<Function> binaryConstructor;
 	Nan::Persistent<Function> codeConstructor;
@@ -374,8 +375,8 @@ private:
 class BSONDeserializer
 {
 public:
-	BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers);
-	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers);
+	BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues);
+	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues);
 
 	Local<Value> DeserializeDocument();
 
@@ -461,6 +462,7 @@ private:
   bool bsonRegExp;
   bool promoteLongs;
   bool promoteBuffers;
+  bool promoteValues;
 };
 
 //===========================================================================

@@ -1,5 +1,4 @@
-var BSON = require('../..'),
-  ObjectId = BSON.ObjectID;
+var ObjectId = BSON.ObjectID;
 
 /**
  * @ignore
