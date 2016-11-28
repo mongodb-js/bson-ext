@@ -372,10 +372,10 @@ private:
 class BSONDeserializer
 {
 public:
-	BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp);
-	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp);
+	BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers);
+	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers);
 
-	Local<Value> DeserializeDocument(bool promoteLongs, bool promoteBuffers);
+	Local<Value> DeserializeDocument();
 
 	bool			HasMoreData() const { return p < pEnd; }
 	Local<Value>	ReadCString();
@@ -447,16 +447,18 @@ public:
 	size_t			GetSerializeSize() const { return p - pStart; }
 
 private:
-	Local<Value> DeserializeArray(bool promoteLongs, bool promoteBuffers);
-	Local<Value> DeserializeValue(BsonType type, bool promoteLongs, bool promoteBuffers);
-	Local<Value> DeserializeDocumentInternal(bool promoteLongs, bool promoteBuffers);
-	Local<Value> DeserializeArrayInternal(bool promoteLongs, bool promoteBuffers);
+	Local<Value> DeserializeArray();
+	Local<Value> DeserializeValue(BsonType type);
+	Local<Value> DeserializeDocumentInternal();
+	Local<Value> DeserializeArrayInternal();
 
 	BSON*		bson;
 	char* const pStart;
 	char*		p;
 	char* const	pEnd;
   bool bsonRegExp;
+  bool promoteLongs;
+  bool promoteBuffers;
 };
 
 //===========================================================================
