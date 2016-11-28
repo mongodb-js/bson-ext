@@ -78,25 +78,25 @@ inline Local<String> NanKey(const Nan::Persistent<String>& s) {
 
 enum BsonType
 {
-	BSON_TYPE_NUMBER		= 1,
-	BSON_TYPE_STRING		= 2,
-	BSON_TYPE_OBJECT		= 3,
-	BSON_TYPE_ARRAY			= 4,
-	BSON_TYPE_BINARY		= 5,
-	BSON_TYPE_UNDEFINED		= 6,
-	BSON_TYPE_OID			= 7,
-	BSON_TYPE_BOOLEAN		= 8,
-	BSON_TYPE_DATE			= 9,
-	BSON_TYPE_NULL			= 10,
-	BSON_TYPE_REGEXP		= 11,
-	BSON_TYPE_CODE			= 13,
-	BSON_TYPE_SYMBOL		= 14,
-	BSON_TYPE_CODE_W_SCOPE	= 15,
-	BSON_TYPE_INT			= 16,
-	BSON_TYPE_TIMESTAMP		= 17,
-	BSON_TYPE_LONG			= 18,
-	BSON_TYPE_MAX_KEY		= 0x7f,
-	BSON_TYPE_MIN_KEY		= 0xff
+	BSON_TYPE_NUMBER		     = 1,
+	BSON_TYPE_STRING		     = 2,
+	BSON_TYPE_OBJECT		     = 3,
+	BSON_TYPE_ARRAY			     = 4,
+	BSON_TYPE_BINARY		     = 5,
+	BSON_TYPE_UNDEFINED	     = 6,
+	BSON_TYPE_OID			       = 7,
+	BSON_TYPE_BOOLEAN		     = 8,
+	BSON_TYPE_DATE			     = 9,
+	BSON_TYPE_NULL			     = 10,
+	BSON_TYPE_REGEXP		     = 11,
+	BSON_TYPE_CODE			     = 13,
+	BSON_TYPE_SYMBOL		     = 14,
+	BSON_TYPE_CODE_W_SCOPE	 = 15,
+	BSON_TYPE_INT			       = 16,
+	BSON_TYPE_TIMESTAMP		   = 17,
+	BSON_TYPE_LONG			     = 18,
+	BSON_TYPE_MAX_KEY		     = 0x7f,
+	BSON_TYPE_MIN_KEY		     = 0xff
 };
 
 //===========================================================================
@@ -135,6 +135,7 @@ private:
 	Nan::Persistent<Function> objectIDConstructor;
 	Nan::Persistent<Function> binaryConstructor;
 	Nan::Persistent<Function> codeConstructor;
+  Nan::Persistent<Function> regexpConstructor;
 	Nan::Persistent<Function> dbrefConstructor;
 	Nan::Persistent<Function> symbolConstructor;
 	Nan::Persistent<Function> doubleConstructor;
@@ -352,8 +353,8 @@ private:
 	typedef T Inherited;
 
 public:
-	BSONSerializer(BSON* aBson, bool aCheckKeys, bool aSerializeFunctions) : Inherited(), checkKeys(aCheckKeys), serializeFunctions(aSerializeFunctions), bson(aBson) { }
-	BSONSerializer(BSON* aBson, bool aCheckKeys, bool aSerializeFunctions, char* parentParam) : Inherited(parentParam), checkKeys(aCheckKeys), serializeFunctions(aSerializeFunctions), bson(aBson) { }
+	BSONSerializer(BSON* aBson, bool aCheckKeys, bool aSerializeFunctions, bool ignoreUndefined) : Inherited(), checkKeys(aCheckKeys), serializeFunctions(aSerializeFunctions), ignoreUndefined(ignoreUndefined), bson(aBson) { }
+	BSONSerializer(BSON* aBson, bool aCheckKeys, bool aSerializeFunctions, bool ignoreUndefined, char* parentParam) : Inherited(parentParam), checkKeys(aCheckKeys), serializeFunctions(aSerializeFunctions), ignoreUndefined(ignoreUndefined), bson(aBson) { }
 
 	void SerializeDocument(const Local<Value>& value);
 	void SerializeArray(const Local<Value>& value);
@@ -362,6 +363,7 @@ public:
 private:
 	bool		checkKeys;
 	bool		serializeFunctions;
+  bool    ignoreUndefined;
 	BSON*		bson;
 };
 
@@ -370,10 +372,10 @@ private:
 class BSONDeserializer
 {
 public:
-	BSONDeserializer(BSON* aBson, char* data, size_t length);
-	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length);
+	BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp);
+	BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp);
 
-	Local<Value> DeserializeDocument(bool promoteLongs);
+	Local<Value> DeserializeDocument(bool promoteLongs, bool promoteBuffers);
 
 	bool			HasMoreData() const { return p < pEnd; }
 	Local<Value>	ReadCString();
@@ -445,15 +447,16 @@ public:
 	size_t			GetSerializeSize() const { return p - pStart; }
 
 private:
-	Local<Value> DeserializeArray(bool promoteLongs);
-	Local<Value> DeserializeValue(BsonType type, bool promoteLongs);
-	Local<Value> DeserializeDocumentInternal(bool promoteLongs);
-	Local<Value> DeserializeArrayInternal(bool promoteLongs);
+	Local<Value> DeserializeArray(bool promoteLongs, bool promoteBuffers);
+	Local<Value> DeserializeValue(BsonType type, bool promoteLongs, bool promoteBuffers);
+	Local<Value> DeserializeDocumentInternal(bool promoteLongs, bool promoteBuffers);
+	Local<Value> DeserializeArrayInternal(bool promoteLongs, bool promoteBuffers);
 
 	BSON*		bson;
 	char* const pStart;
 	char*		p;
 	char* const	pEnd;
+  bool bsonRegExp;
 };
 
 //===========================================================================

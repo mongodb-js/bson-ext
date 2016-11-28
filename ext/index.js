@@ -10,6 +10,7 @@ try {
 	  bson = require('bindings')('bson.node');
 	}
 } catch(err) {
+	console.log(err)
 	// Attempt to load the release bson version
 	try {
 		bson = require('bindings')('bson.node');
