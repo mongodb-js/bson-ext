@@ -131,16 +131,16 @@ private:
 	static Local<Value> deserialize(BSON *bson, char *data, uint32_t dataLength, uint32_t startIndex, bool is_array_item);
 
 	// BSON type instantiate functions
-	Persistent<Function> longConstructor;
-	Persistent<Function> objectIDConstructor;
-	Persistent<Function> binaryConstructor;
-	Persistent<Function> codeConstructor;
-	Persistent<Function> dbrefConstructor;
-	Persistent<Function> symbolConstructor;
-	Persistent<Function> doubleConstructor;
-	Persistent<Function> timestampConstructor;
-	Persistent<Function> minKeyConstructor;
-	Persistent<Function> maxKeyConstructor;
+	Nan::Persistent<Function> longConstructor;
+	Nan::Persistent<Function> objectIDConstructor;
+	Nan::Persistent<Function> binaryConstructor;
+	Nan::Persistent<Function> codeConstructor;
+	Nan::Persistent<Function> dbrefConstructor;
+	Nan::Persistent<Function> symbolConstructor;
+	Nan::Persistent<Function> doubleConstructor;
+	Nan::Persistent<Function> timestampConstructor;
+	Nan::Persistent<Function> minKeyConstructor;
+	Nan::Persistent<Function> maxKeyConstructor;
 
 	Local<Object> GetSerializeObject(const Local<Value>& object);
 

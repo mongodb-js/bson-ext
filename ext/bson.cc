@@ -483,7 +483,7 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 		if(name->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
 		// name->Is
 		const Local<Value>& value = DeserializeValue(type, promoteLongs);
-		returnObject->ForceSet(name, value);
+		returnObject->Set(name, value);
 	}
 
 	if(p != pEnd) ThrowAllocatedStringException(64, "Bad BSON Document: Serialize consumed unexpected number of bytes");
@@ -492,7 +492,8 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal(bool promoteLongs) {
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
 	if(NanHas(returnObject, DBREF_ID_REF_PROPERTY_NAME)) {
 		Local<Value> argv[] = { NanGet(returnObject, DBREF_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME) };
-		return Nan::New(bson->dbrefConstructor)->NewInstance(3, argv);
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 3, argv);
+		return obj.ToLocalChecked();
 	} else {
 		return returnObject;
 	}
@@ -543,7 +544,8 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 			int32_t lowBits = ReadInt32();
 			int32_t highBits = ReadInt32();
 			Local<Value> argv[] = { Nan::New<Int32>(lowBits), Nan::New<Int32>(highBits) };
-			return Nan::New(bson->timestampConstructor)->NewInstance(2, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->timestampConstructor), 2, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_BOOLEAN:
@@ -560,7 +562,8 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 			const Local<Value>& code = ReadString();
 			const Local<Value>& scope = Unmaybe(Nan::New<Object>());
 			Local<Value> argv[] = { code, scope };
-			return Nan::New(bson->codeConstructor)->NewInstance(2, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->codeConstructor), 2, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_CODE_W_SCOPE: {
@@ -568,12 +571,14 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 			const Local<Value>& code = ReadString();
 			const Local<Value>& scope = DeserializeDocument(promoteLongs);
 			Local<Value> argv[] = { code, scope->ToObject() };
-			return Nan::New(bson->codeConstructor)->NewInstance(2, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->codeConstructor), 2, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_OID: {
 			Local<Value> argv[] = { ReadObjectId() };
-			return Nan::New(bson->objectIDConstructor)->NewInstance(1, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_BINARY: {
@@ -587,7 +592,8 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 			p += length;
 
 			Local<Value> argv[] = { buffer, Nan::New<Uint32>(subType) };
-			return Nan::New(bson->binaryConstructor)->NewInstance(2, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->binaryConstructor), 2, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_LONG: {
@@ -610,7 +616,8 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 
 			// Decode the Long value
 			Local<Value> argv[] = { Nan::New<Int32>(lowBits), Nan::New<Int32>(highBits) };
-			return Nan::New(bson->longConstructor)->NewInstance(2, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->longConstructor), 2, argv);
+			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_DATE:
@@ -625,14 +632,19 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool promoteLongs
 	case BSON_TYPE_SYMBOL: {
 			const Local<String>& string = ReadString();
 			Local<Value> argv[] = { string };
-			return Nan::New(bson->symbolConstructor)->NewInstance(1, argv);
+			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->symbolConstructor), 1, argv);
+			return obj.ToLocalChecked();
 		}
 
-	case BSON_TYPE_MIN_KEY:
-		return Nan::New(bson->minKeyConstructor)->NewInstance();
+	case BSON_TYPE_MIN_KEY: {
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->minKeyConstructor));
+		return obj.ToLocalChecked();
+	}
 
-	case BSON_TYPE_MAX_KEY:
-		return Nan::New(bson->maxKeyConstructor)->NewInstance();
+	case BSON_TYPE_MAX_KEY: {
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->maxKeyConstructor));
+		return obj.ToLocalChecked();
+	}
 
 	default:
 		ThrowAllocatedStringException(64, "Unhandled BSON Type: %d", type);
@@ -682,7 +694,7 @@ void BSON::Initialize(v8::Local<v8::Object> target) {
 
 	constructor_template.Reset(t);
 
-	target->ForceSet(NanStr("BSON"), t->GetFunction());
+	target->Set(NanStr("BSON"), t->GetFunction());
 }
 
 // Create a new instance of BSON and passing it the existing context
@@ -919,10 +931,6 @@ NAN_METHOD(BSON::BSONSerialize) {
 		Local<String> error = NanStr(err_msg);
 		free(err_msg);
 		return Nan::ThrowError(error);
-	} catch(const char *err_msg) {
-		free(final);
-		Local<String> error = NanStr(err_msg);
-		return Nan::ThrowError(error);
 	}
 
 	// If we have 3 arguments
@@ -984,9 +992,6 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
 	} catch(char *exception) {
 		Local<String> error = NanStr(exception);
 		free(exception);
-		return Nan::ThrowError(error);
-	} catch(const char *exception) {
-		Local<String> error = NanStr(exception);
 		return Nan::ThrowError(error);
 	}
 
