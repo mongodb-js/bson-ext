@@ -21,11 +21,7 @@ var testCase = require('nodeunit').testCase,
   BinaryParser = require('../binary_parser').BinaryParser,
   vm = require('vm');
 
-function createBSON() {
-  return new BSON([BSON.Binary, BSON.Code, BSON.DBRef, BSON.Decimal128,
-    BSON.Double, BSON.Int32, BSON.Long, BSON.Map, BSON.MaxKey, BSON.MinKey,
-    BSON.ObjectId, BSON.BSONRegExp, BSON.Symbol, BSON.Timestamp]);
-}
+var createBSON = require('../utils');
 
 // for tests
 BSON.BSON_BINARY_SUBTYPE_DEFAULT = 0;

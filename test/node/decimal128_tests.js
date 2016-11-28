@@ -4,11 +4,7 @@ var INF_NEGATIVE_BUFFER = new Buffer([0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 var INF_POSITIVE_BUFFER = new Buffer([0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].reverse());
 var BSON = require('../..');
 
-function createBSON() {
-  return new BSON([BSON.Binary, BSON.Code, BSON.DBRef, BSON.Decimal128,
-    BSON.Double, BSON.Int32, BSON.Long, BSON.Map, BSON.MaxKey, BSON.MinKey,
-    BSON.ObjectId, BSON.BSONRegExp, BSON.Symbol, BSON.Timestamp]);
-}
+var createBSON = require('../utils');
 
 var shouldFail = function() {
   try {
