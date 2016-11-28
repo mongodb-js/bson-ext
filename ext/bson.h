@@ -95,6 +95,7 @@ enum BsonType
 	BSON_TYPE_INT			       = 16,
 	BSON_TYPE_TIMESTAMP		   = 17,
 	BSON_TYPE_LONG			     = 18,
+  BSON_TYPE_DECIMAL128		 = 19,
 	BSON_TYPE_MAX_KEY		     = 0x7f,
 	BSON_TYPE_MIN_KEY		     = 0xff
 };
@@ -133,6 +134,7 @@ private:
 	// BSON type instantiate functions
 	Nan::Persistent<Function> longConstructor;
 	Nan::Persistent<Function> objectIDConstructor;
+  Nan::Persistent<Function> decimalConstructor;
 	Nan::Persistent<Function> binaryConstructor;
 	Nan::Persistent<Function> codeConstructor;
   Nan::Persistent<Function> regexpConstructor;

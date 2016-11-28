@@ -59,6 +59,7 @@ static const char* TIMESTAMP_CLASS_NAME = "Timestamp";
 static const char* MIN_KEY_CLASS_NAME = "MinKey";
 static const char* MAX_KEY_CLASS_NAME = "MaxKey";
 static const char* REGEXP_CLASS_NAME = "BSONRegExp";
+static const char* DECIMAL128_CLASS_NAME = "Decimal128";
 
 // Equality speed up comparison objects
 static const char* BSONTYPE_PROPERTY_NAME = "_bsontype";
@@ -70,6 +71,7 @@ static const char* BINARY_SUBTYPE_PROPERTY_NAME = "sub_type";
 static const char* BINARY_BUFFER_PROPERTY_NAME = "buffer";
 static const char* DOUBLE_VALUE_PROPERTY_NAME = "value";
 static const char* SYMBOL_VALUE_PROPERTY_NAME = "value";
+static const char* DECIMAL128_VALUE_PROPERTY_NAME = "bytes";
 
 static const char* DBREF_REF_PROPERTY_NAME = "$ref";
 static const char* DBREF_ID_REF_PROPERTY_NAME = "$id";
@@ -83,6 +85,7 @@ static const char* REGEX_OPTIONS_PROPERTY_NAME = "options";
 static const char* CODE_CODE_PROPERTY_NAME = "code";
 static const char* CODE_SCOPE_PROPERTY_NAME = "scope";
 static const char* TO_BSON_PROPERTY_NAME = "toBSON";
+static const char* TO_OBJECT_PROPERTY_NAME = "toObject";
 
 void DataStream::WriteObjectId(const Local<Object>& object, const Local<String>& key)
 {
@@ -306,6 +309,15 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 					this->WriteInt32(length);
 				}
 				// Write the actual data
+				this->WriteData(node::Buffer::Data(bufferObj), length);
+			}
+			else if(NanStr(DECIMAL128_CLASS_NAME)->StrictEquals(constructorString)) {
+				this->CommitType(typeLocation, BSON_TYPE_DECIMAL128);
+				// Get the bytes length
+				uint32_t length = (uint32_t)node::Buffer::Length(NanGet(object, DECIMAL128_VALUE_PROPERTY_NAME));
+				// Get the bytes buffer object
+				Local<Object> bufferObj = NanGet(object, DECIMAL128_VALUE_PROPERTY_NAME)->ToObject();
+				// Write the actual decimal128 bytes
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
 			else if(NanStr(DOUBLE_CLASS_NAME)->StrictEquals(constructorString))
@@ -646,6 +658,41 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			}
 		}
 
+	case BSON_TYPE_DECIMAL128: {
+		// Read the 16 bytes making up the decimal 128 value
+		Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, 16));
+		p += 16;
+		Local<Value> argv[] = { buffer };
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->decimalConstructor), 1, argv);
+		Local<Object> object = obj.ToLocalChecked()->ToObject();
+
+		// Check if the method has toObject override
+		if(NanHas(object, TO_OBJECT_PROPERTY_NAME)
+			&& NanGet(object, TO_OBJECT_PROPERTY_NAME)->IsFunction()) {
+				// Get the toObject method
+				const Local<Value>& toObject = NanGet(object, TO_OBJECT_PROPERTY_NAME);
+				// Call the toObject method
+				Local<Value> result = Local<Function>::Cast(toObject)->Call(object, 0, NULL);
+				// Did not get an object back
+				if(!result->IsObject()) ThrowAllocatedStringException(64, "toObject function did not return an object");
+				// Return the value
+				return result->ToObject();
+		}
+		// if(NanHas(object, TO_BSON_PROPERTY_NAME)) {
+		// 	const Local<Value>& toBSON = NanGet(object, TO_BSON_PROPERTY_NAME);
+		// 	if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
+		//
+		// 	Local<Value> result = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
+		// 	if(!result->IsObject()) ThrowAllocatedStringException(64, "toBSON function did not return an object");
+		// 	return result->ToObject();
+		// } else {
+		// 	return object;
+		// }
+
+
+		return object;
+	}
+
 	case BSON_TYPE_LONG: {
 			// Read 32 bit integers
 			int32_t lowBits = (int32_t) ReadInt32();
@@ -718,6 +765,7 @@ BSON::~BSON()
 	longConstructor.Reset();
 	objectIDConstructor.Reset();
 	binaryConstructor.Reset();
+	decimalConstructor.Reset();
 	codeConstructor.Reset();
 	dbrefConstructor.Reset();
 	symbolConstructor.Reset();
@@ -820,13 +868,16 @@ NAN_METHOD(BSON::New) {
 				} else if(functionName->StrictEquals(NanStr(REGEXP_CLASS_NAME))) {
 					bson->regexpConstructor.Reset(func);
 					foundClassesMask |= 0x400;
+				} else if(functionName->StrictEquals(NanStr(DECIMAL128_CLASS_NAME))) {
+					bson->decimalConstructor.Reset(func);
+					foundClassesMask |= 0x800;
 				}
 			}
 
 			// Check if we have the right number of constructors otherwise throw an error
-			if(foundClassesMask != 0x7ff) {
+			if(foundClassesMask != 0xfff) {
 				delete bson;
-				return Nan::ThrowError("Missing function constructor for either [Long/ObjectID/Binary/Code/DbRef/Symbol/Double/Timestamp/MinKey/MaxKey/BSONRegExp]");
+				return Nan::ThrowError("Missing function constructor for either [Long/ObjectID/Binary/Code/DbRef/Symbol/Double/Timestamp/MinKey/MaxKey/BSONRegExp/Decimal128]");
 			} else {
 				bson->Wrap(info.This());
 				info.GetReturnValue().Set(info.This());
@@ -1153,11 +1204,6 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
 
 	try {
 		BSON *bson = ObjectWrap::Unwrap<BSON>(info.This());
-
-		// printf("== SerializeWithBufferAndIndex\n");
-		// printf("\tcheckKeys=%s\n", checkKeys ? "true" : "false");
-		// printf("\tserializeFunctions=%s\n", serializeFunctions ? "true" : "false");
-		// printf("\tignoreUndefined=%s\n", ignoreUndefined ? "true" : "false");
 
 		Local<Object> obj = info[1]->ToObject();
 		char* data = node::Buffer::Data(obj);
