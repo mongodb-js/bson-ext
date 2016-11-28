@@ -384,7 +384,7 @@ public:
 
 	bool			HasMoreData() const { return p < pEnd; }
 	Local<Value>	ReadCString();
-	uint32_t		ReadIntegerString();
+	void	    	ReadIntegerString();
 	int32_t			ReadRegexOptions();
 	Local<String>	ReadString();
 	Local<Object>	ReadObjectId();

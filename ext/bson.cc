@@ -527,14 +527,11 @@ int32_t BSONDeserializer::ReadRegexOptions() {
 	}
 }
 
-uint32_t BSONDeserializer::ReadIntegerString() {
-	uint32_t value = 0;
+void BSONDeserializer::ReadIntegerString() {
 	while(*p) {
-		if(*p < '0' || *p > '9') ThrowAllocatedStringException(64, "Invalid key for array");
-		value = value * 10 + *p++ - '0';
+		p++;
 	}
 	++p;
-	return value;
 }
 
 Local<String> BSONDeserializer::ReadString() {
@@ -607,12 +604,14 @@ Local<Value> BSONDeserializer::DeserializeArray() {
 
 Local<Value> BSONDeserializer::DeserializeArrayInternal() {
 	Local<Array> returnArray = Unmaybe(Nan::New<Array>());
+	uint32_t index = 0;
 
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
-		uint32_t index = ReadIntegerString();
+		ReadIntegerString();
+		Local<Value> indexValue = Nan::New<Integer>(index++);
 		const Local<Value>& value = DeserializeValue(type);
-		returnArray->Set(index, value);
+		returnArray->Set(indexValue, value);
 	}
 
 	if(p != pEnd) ThrowAllocatedStringException(64, "Bad BSON Array: Serialize consumed unexpected number of bytes");
