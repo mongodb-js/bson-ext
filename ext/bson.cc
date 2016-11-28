@@ -509,7 +509,7 @@ Local<Value> BSONDeserializer::ReadCString() {
 	char* start = p;
 	while(*p++ && (p < pEnd)) { }
 	if(p > pEnd) {
-		return Nan::Null();
+		ThrowAllocatedStringException(64, "Illegal CString found");
 	}
 
 	return Unmaybe(Nan::New<String>(start, (int32_t) (p-start-1) ));
@@ -539,8 +539,16 @@ uint32_t BSONDeserializer::ReadIntegerString() {
 
 Local<String> BSONDeserializer::ReadString() {
 	uint32_t length = ReadUInt32();
+	if(length > (pEnd - p)) {
+		ThrowAllocatedStringException(64, "Invalid bson string length");
+	}
+
 	char* start = p;
 	p += length;
+	if(*(p - 1) != 0x00) {
+		ThrowAllocatedStringException(64, "Illegal bson string terminator found");
+	}
+
 	return Unmaybe(Nan::New<String>(start, length-1));
 }
 
@@ -574,6 +582,9 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 	}
 
 	if(p != pEnd) ThrowAllocatedStringException(64, "Bad BSON Document: Serialize consumed unexpected number of bytes");
+
+	// // What is p pointing to
+	// printf("==== doc byte %x\n",*p);
 
 	// From JavaScript:
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
@@ -612,8 +623,9 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 {
 	switch(type)
 	{
-	case BSON_TYPE_STRING:
+	case BSON_TYPE_STRING: {
 		return ReadString();
+	}
 
 	case BSON_TYPE_INT: {
 		Local<Value> value = Nan::New<Integer>(ReadInt32());
