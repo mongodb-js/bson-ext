@@ -1230,6 +1230,15 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
 				return Nan::ThrowError("ignoreUndefined argument must be a boolean");
 			}
 		}
+
+		// Check if we have the checkKeys variable
+		if(NanHas(options, "index")) {
+			if(NanGet(options, "index")->IsUint32()) {
+				index =  Nan::To<uint32_t>(NanGet(options, "index")).FromJust();
+			} else {
+				return Nan::ThrowError("index argument must be an integer");
+			}
+		}
 	}
 
 	try {
