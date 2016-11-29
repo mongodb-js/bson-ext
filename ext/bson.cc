@@ -166,39 +166,94 @@ void DataStream::CheckForIllegalString(const Local<String>& keyName)
 
 template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value>& value)
 {
+	bool valid = this->BeginDocument();
+	if(!valid) {
+		return ThrowAllocatedStringException(64, "cyclic dependency detected");
+	}
+
 	void* documentSize = this->BeginWriteSize();
 	Local<Object> object = bson->GetSerializeObject(value);
+	Local<String> propertyName;
+	Local<Value> propertyValue;
 
-	// Get the object property names
-  Local<Array> propertyNames = object->GetPropertyNames();
+	if(NanHas(object, "entries") && NanHas(object, "keys") && NanHas(object, "values")) {
+		// Get the entries function
+		const Local<Value>& entries = NanGet(object, "entries");
+		if(!entries->IsFunction()) ThrowAllocatedStringException(64, "Map.entries is not a function");
 
-	// Length of the property
-	int propertyLength = propertyNames->Length();
-	for(int i = 0;  i < propertyLength; ++i)
-	{
-		const Local<String>& propertyName = NanGet(propertyNames, i)->ToString();
-		if(checkKeys) this->CheckKey(propertyName);
+		// Get the iterator
+		Local<Object> iterator = Local<Function>::Cast(entries)->Call(object, 0, NULL)->ToObject();
 
-		const Local<Value>& propertyValue = NanGet(object, propertyName);
+		// Check if we have the next value
+		const Local<Value>& next = NanGet(iterator, "next");
+		if(!next->IsFunction()) ThrowAllocatedStringException(64, "Map.iterator.next is not a function");
 
-		// We are not serializing the function
-		if(!serializeFunctions && propertyValue->IsFunction()) {
-			continue;
+		// Iterate until we are done
+		while(true) {
+			// Get the entry
+			Local<Object> entry = Local<Function>::Cast(next)->Call(iterator, 0, NULL)->ToObject();
+
+			// Check if we are done
+			if(NanGet(entry, "done")->ToBoolean()->Value()) {
+				break;
+			}
+
+			// Get the value object
+			Local<Object> value = NanGet(entry, "value")->ToObject();
+
+			// Not done then lets get the value items
+			propertyName = NanGet(value, "0")->ToString();
+			if(checkKeys) this->CheckKey(propertyName);
+			// Get the property value
+			propertyValue = NanGet(value, "1");
+
+			// We are not serializing the function
+			if(!serializeFunctions && propertyValue->IsFunction()) {
+				continue;
+			}
+
+			// We are ignoring undefined values
+			if(ignoreUndefined && propertyValue->IsUndefined()) {
+				continue;
+			}
+
+			// Serialize the value
+			void* typeLocation = this->BeginWriteType();
+			this->WriteString(propertyName);
+			SerializeValue(typeLocation, propertyValue, false);
 		}
+	} else {
+		// Get the object property names
+	  Local<Array> propertyNames = object->GetPropertyNames();
 
-		// We are ignoring undefined values
-		if(ignoreUndefined && propertyValue->IsUndefined()) {
-			continue;
+		// Length of the property
+		int propertyLength = propertyNames->Length();
+		for(int i = 0;  i < propertyLength; ++i)
+		{
+			propertyName = NanGet(propertyNames, i)->ToString();
+			if(checkKeys) this->CheckKey(propertyName);
+			propertyValue = NanGet(object, propertyName);
+
+			// We are not serializing the function
+			if(!serializeFunctions && propertyValue->IsFunction()) {
+				continue;
+			}
+
+			// We are ignoring undefined values
+			if(ignoreUndefined && propertyValue->IsUndefined()) {
+				continue;
+			}
+
+			// Serialize the value
+			void* typeLocation = this->BeginWriteType();
+			this->WriteString(propertyName);
+			SerializeValue(typeLocation, propertyValue, false);
 		}
-
-		// Serialize the value
-		void* typeLocation = this->BeginWriteType();
-		this->WriteString(propertyName);
-		SerializeValue(typeLocation, propertyValue, false);
 	}
 
 	this->WriteByte(0);
 	this->CommitSize(documentSize);
+	this->EndDocument();
 }
 
 template<typename T> void BSONSerializer<T>::SerializeArray(const Local<Value>& value)

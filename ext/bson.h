@@ -157,7 +157,7 @@ private:
 class CountStream
 {
 public:
-	CountStream() : count(0) { }
+	CountStream() : depth(0), count(0) { }
 
 	void	WriteByte(int value)									{ ++count; }
 	void	WriteByte(const Local<Object>&, const Local<String>&)	{ ++count; }
@@ -180,12 +180,22 @@ public:
 	void	CommitType(void*, BsonType)								{ }
 	void*	BeginWriteSize()										{ count += 4; return NULL; }
 	void	CommitSize(void*)										{ }
+  bool  BeginDocument() {
+    depth = depth + 1;
+    if(depth >= 256) return false;
+    return true;
+  }
+  void EndDocument() {
+    depth = depth - 1;
+  }
 
 	size_t GetSerializeSize() const									{ return count; }
 
 	// Do nothing. CheckKey is implemented for DataStream
 	void	CheckKey(const Local<String>&)							{ }
   void	CheckForIllegalString(const Local<String>&)							{ }
+
+  uint32_t depth;                   // keeps track of recursive depth
 
 private:
 	size_t	count;
@@ -196,7 +206,7 @@ const size_t MAX_BSON_SIZE (1024*1024*17);
 class DataStream
 {
 public:
-	DataStream(char* aDestinationBuffer) : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer) { }
+	DataStream(char* aDestinationBuffer) : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer), depth(0) { }
 
 	void	WriteByte(int value) {
 		if((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE) throw "document is larger than max bson document size of 16MB";
@@ -347,9 +357,19 @@ public:
 	void	CheckKey(const Local<String>& keyName);
   void	CheckForIllegalString(const Local<String>& keyName);
 
+  bool  BeginDocument() {
+    depth = depth + 1;
+    if(depth >= 256) return false;
+    return true;
+  }
+  void EndDocument() {
+    depth = depth - 1;
+  }
+
 public:
 	char *const	destinationBuffer;		// base, never changes
 	char*	p;													// cursor into buffer
+  uint32_t depth;                   // keeps track of recursive depth
 };
 
 template<typename T> class BSONSerializer : public T
