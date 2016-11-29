@@ -328,12 +328,20 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				uint32_t length = NanGet(object, BINARY_POSITION_PROPERTY_NAME)->Uint32Value();
 				Local<Object> bufferObj = NanGet(object, BINARY_BUFFER_PROPERTY_NAME)->ToObject();
 
+				// Add the deprecated 02 type 4 bytes of size to total
+				if(NanGet(object, BINARY_SUBTYPE_PROPERTY_NAME)->Int32Value() == 0x02) {
+					length = length + 4;
+				}
+
 				this->WriteInt32(length);
 				this->WriteByte(object, NanStr(BINARY_SUBTYPE_PROPERTY_NAME));	// write subtype
+
 				// If type 0x02 write the array length aswell
 				if(NanGet(object, BINARY_SUBTYPE_PROPERTY_NAME)->Int32Value() == 0x02) {
+					length = length - 4;
 					this->WriteInt32(length);
 				}
+
 				// Write the actual data
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
@@ -364,17 +372,14 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			else if(NanStr(CODE_CLASS_NAME)->StrictEquals(constructorString))
 			{
 				const Local<String>& function = NanGet(object, CODE_CODE_PROPERTY_NAME)->ToString();
-				const Local<Object>& scope = NanGet(object, CODE_SCOPE_PROPERTY_NAME)->ToObject();
+				// Does the code object have a defined scope
+				bool hasScope = NanHas(object, CODE_SCOPE_PROPERTY_NAME)
+					&& NanGet(object, CODE_SCOPE_PROPERTY_NAME)->IsObject()
+					&& !NanGet(object, CODE_SCOPE_PROPERTY_NAME)->IsNull();
 
-				// For Node < 0.6.X use the GetPropertyNames
-	      #if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION < 6
-	        uint32_t propertyNameLength = scope->GetPropertyNames()->Length();
-	      #else
-	        uint32_t propertyNameLength = scope->GetOwnPropertyNames()->Length();
-	      #endif
-
-				if(propertyNameLength > 0)
+				if(hasScope)
 				{
+					const Local<Object>& scope = NanGet(object, CODE_SCOPE_PROPERTY_NAME)->ToObject();
 					this->CommitType(typeLocation, BSON_TYPE_CODE_W_SCOPE);
 					void* codeWidthScopeSize = this->BeginWriteSize();
 					this->WriteLengthPrefixedString(function->ToString());
@@ -515,7 +520,7 @@ Local<Value> BSONDeserializer::ReadCString() {
 	return Unmaybe(Nan::New<String>(start, (int32_t) (p-start-1) ));
 }
 
-int32_t BSONDeserializer::ReadRegexOptions() {
+int32_t BSONDeserializer::ReadJavascriptRegexOptions() {
 	int32_t options = 0;
 	for(;;) {
 		switch(*p++) {
@@ -523,6 +528,27 @@ int32_t BSONDeserializer::ReadRegexOptions() {
 			case 's': options |= RegExp::kGlobal; break;
 			case 'i': options |= RegExp::kIgnoreCase; break;
 			case 'm': options |= RegExp::kMultiline; break;
+			default:
+				ThrowAllocatedStringException(64, "Javascript RegExp option not one of s, i, m");
+				break;
+		}
+	}
+}
+
+int32_t BSONDeserializer::ReadBSONRegexOptions() {
+	int32_t options = 0;
+	for(;;) {
+		switch(*p++) {
+			case '\0': return options;
+			case 's': break;
+			case 'i': break;
+			case 'l': break;
+			case 'u': break;
+			case 'x': break;
+			case 'm': break;
+			default:
+				ThrowAllocatedStringException(64, "BSON RegExp option not one of s, i, l, u, x, m");
+				break;
 		}
 	}
 }
@@ -535,8 +561,9 @@ void BSONDeserializer::ReadIntegerString() {
 }
 
 Local<String> BSONDeserializer::ReadString() {
-	uint32_t length = ReadUInt32();
-	if(length > (pEnd - p)) {
+	int32_t length = ReadInt32();
+
+	if(length <= 0 || length > (pEnd - p)) {
 		ThrowAllocatedStringException(64, "Invalid bson string length");
 	}
 
@@ -560,6 +587,7 @@ Local<Object> BSONDeserializer::ReadObjectId() {
 
 Local<Value> BSONDeserializer::DeserializeDocument() {
 	uint32_t length = ReadUInt32();
+
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
 	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
@@ -579,9 +607,6 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 	}
 
 	if(p != pEnd) ThrowAllocatedStringException(64, "Bad BSON Document: Serialize consumed unexpected number of bytes");
-
-	// // What is p pointing to
-	// printf("==== doc byte %x\n",*p);
 
 	// From JavaScript:
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
@@ -664,36 +689,61 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			return obj.ToLocalChecked();
 		}
 
-	case BSON_TYPE_BOOLEAN:
-		return (ReadByte() != 0) ? Nan::True() : Nan::False();
+	case BSON_TYPE_BOOLEAN: {
+		char value = ReadByte();
+
+		if(value != 0 && value != 1) {
+			ThrowAllocatedStringException(64, "Illegal BSON Binary value");
+		}
+
+		return (value != 0) ? Nan::True() : Nan::False();
+	}
 
 	case BSON_TYPE_REGEXP: {
 			const Local<Value>& regex = ReadCString();
 			if(regex->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
 
 			if (bsonRegExp) {
+				// Save pointer
+				char* start = p;
+				// Read and validate options
+				ReadBSONRegexOptions();
+				// Reset read pointer
+				p = start;
+				// Read the options
 				const Local<Value>& options = ReadCString();
 				Local<Value> argv[] = { regex, options };
 				Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->regexpConstructor), 2, argv);
 				return obj.ToLocalChecked();
 			} else {
-				int32_t options = ReadRegexOptions();
+				int32_t options = ReadJavascriptRegexOptions();
 				return Unmaybe(Nan::New<RegExp>(regex->ToString(), (RegExp::Flags) options));
 			}
 		}
 
 	case BSON_TYPE_CODE: {
-			const Local<Value>& code = ReadString();
-			const Local<Value>& scope = Unmaybe(Nan::New<Object>());
-			Local<Value> argv[] = { code, scope };
+			const Local<String>& code = ReadString();
+			Local<Value> argv[] = { code, Nan::Undefined() };
 			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->codeConstructor), 2, argv);
 			return obj.ToLocalChecked();
 		}
 
 	case BSON_TYPE_CODE_W_SCOPE: {
-			ReadUInt32();
-			const Local<Value>& code = ReadString();
+			char* const start = p;
+			int32_t length = ReadInt32();
+
+			if(length < (4+4+4+1)) {
+				ThrowAllocatedStringException(64, "code_w_scope total size shorter minimum expected length");
+			}
+
+			const Local<String>& code = ReadString();
 			const Local<Value>& scope = DeserializeDocument();
+			char* const end = p;
+
+			if((end-start) != length) {
+				ThrowAllocatedStringException(64, "code_w_scope total size shorter minimum expected length");
+			}
+
 			Local<Value> argv[] = { code, scope->ToObject() };
 			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->codeConstructor), 2, argv);
 			return obj.ToLocalChecked();
@@ -706,10 +756,19 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 		}
 
 	case BSON_TYPE_BINARY: {
-			uint32_t length = ReadUInt32();
+			int32_t length = ReadInt32();
+
+			if(length < 0) {
+				ThrowAllocatedStringException(64, "binary bson object length must be >= 0");
+			}
+
 			uint32_t subType = ReadByte();
 			if(subType == 0x02) {
 				length = ReadInt32();
+
+				if(length < 0) {
+					ThrowAllocatedStringException(64, "binary bson type 0x02 object length must be >= 0");
+				}
 			}
 
 			Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, length));
