@@ -645,22 +645,16 @@ Local<Value> BSONDeserializer::DeserializeDocument() {
 
 	uint32_t length = ReadUInt32();
 
-	// printf("====== %lu == %u\n", (pEnd - p), length);
-
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
 	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
 	// Serialize the document
 	Local<Value> value = documentDeserializer.DeserializeDocumentInternal();
 
-	// printf("====== %lu == %u == %lu\n", (pEnd - p), length, (p - start));
-
 	if(length != (p - start)) {
-		// printf("============= ILLEGAL DOC\n");
 		ThrowAllocatedStringException(64, "Illegal Document Length");
 	}
 
-	// printf("====== %lu == %u == %lu\n", (pEnd - p), length, (p - start));
 	// Return the value
 	return value;
 }
@@ -1099,6 +1093,8 @@ NAN_METHOD(BSON::New) {
 				} else if(functionName->StrictEquals(NanStr(INT32_CLASS_NAME))) {
 					bson->int32Constructor.Reset(func);
 					foundClassesMask |= 0x1000;
+				} else {
+					v8::String::Utf8Value str(functionName);
 				}
 			}
 
