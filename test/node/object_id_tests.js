@@ -1,3 +1,4 @@
+var BSON = require('../..');
 var ObjectId = BSON.ObjectID;
 
 /**

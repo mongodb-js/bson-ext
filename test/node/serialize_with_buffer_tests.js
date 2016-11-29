@@ -19,7 +19,6 @@ exports['correctly serialize into buffer using serializeWithBufferAndIndex'] = f
   var r = bson.serializeWithBufferAndIndex({a:1}, b, {
     index: r + 1
   });
-  console.log("index :: " + r)
   test.equal(23, r);
 
   // Deserialize the buffers
