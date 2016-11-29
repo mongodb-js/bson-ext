@@ -1481,7 +1481,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 		if(!info[4]->IsUint32()) return Nan::ThrowError("Sixth argument must be a positive index number");
 	}
 
-	// If we have 4 arguments
+	// If we have 6 arguments
 	if(info.Length() == 6 && !info[5]->IsObject()) return Nan::ThrowError("Fifth argument must be an object with options");
 
 	// Define pointer to data
@@ -1498,9 +1498,40 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	if(info.Length() == 6) {
 		Local<Object> options = info[5]->ToObject();
 
-		// Check if we have the promoteLong variable
+		// Check if we have the promoteLongs variable
 		if(NanHas(options, "promoteLongs")) {
-			promoteLongs = NanGet(options, "promoteLongs")->ToBoolean()->Value();
+			if(NanGet(options, "promoteLongs")->IsBoolean()) {
+				promoteLongs = NanGet(options, "promoteLongs")->ToBoolean()->Value();
+			} else {
+				return Nan::ThrowError("promoteLongs argument must be a boolean");
+			}
+		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "promoteBuffers")) {
+			if(NanGet(options, "promoteBuffers")->IsBoolean()) {
+				promoteBuffers = NanGet(options, "promoteBuffers")->ToBoolean()->Value();
+			} else {
+				return Nan::ThrowError("promoteBuffers argument must be a boolean");
+			}
+		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "bsonRegExp")) {
+			if(NanGet(options, "bsonRegExp")->IsBoolean()) {
+				bsonRegExp = NanGet(options, "bsonRegExp")->ToBoolean()->Value();
+			} else {
+				return Nan::ThrowError("bsonRegExp argument must be a boolean");
+			}
+		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "promoteValues")) {
+			if(NanGet(options, "promoteValues")->IsBoolean()) {
+				promoteValues = NanGet(options, "promoteValues")->ToBoolean()->Value();
+			} else {
+				return Nan::ThrowError("promoteValues argument must be a boolean");
+			}
 		}
 	}
 
