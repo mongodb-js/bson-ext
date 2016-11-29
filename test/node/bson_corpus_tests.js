@@ -121,6 +121,7 @@ function executeDecodeError(spec, scenarios) {
       // console.log("============================ deserializedObject")
       // console.dir(deserializedObject)
     } catch(err) {
+      // console.log(err)
       failed = true;
     }
 

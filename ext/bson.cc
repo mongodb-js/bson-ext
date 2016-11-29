@@ -586,12 +586,28 @@ Local<Object> BSONDeserializer::ReadObjectId() {
 }
 
 Local<Value> BSONDeserializer::DeserializeDocument() {
+	const char* start = p;
+
 	uint32_t length = ReadUInt32();
+
+	// printf("====== %lu == %u\n", (pEnd - p), length);
 
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
 	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
-	return documentDeserializer.DeserializeDocumentInternal();
+	// Serialize the document
+	Local<Value> value = documentDeserializer.DeserializeDocumentInternal();
+
+	// printf("====== %lu == %u == %lu\n", (pEnd - p), length, (p - start));
+
+	if(length != (p - start)) {
+		// printf("============= ILLEGAL DOC\n");
+		ThrowAllocatedStringException(64, "Illegal Document Length");
+	}
+
+	// printf("====== %lu == %u == %lu\n", (pEnd - p), length, (p - start));
+	// Return the value
+	return value;
 }
 
 Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
@@ -652,6 +668,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 	}
 
 	case BSON_TYPE_INT: {
+		if((pEnd - p) < 4) {
+			ThrowAllocatedStringException(64, "Illegal BSON found, truncated Int32");
+		}
+
 		Local<Value> value = Nan::New<Integer>(ReadInt32());
 
 		if (!promoteValues) {
@@ -664,6 +684,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 	}
 
 	case BSON_TYPE_NUMBER: {
+		if((pEnd - p) < 8) {
+			ThrowAllocatedStringException(64, "Illegal BSON found, truncated Double");
+		}
+
 		Local<Value> value = Nan::New<Number>(ReadDouble());
 
 		if (!promoteValues) {
@@ -682,6 +706,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 		return Nan::Undefined();
 
 	case BSON_TYPE_TIMESTAMP: {
+			if((pEnd - p) < 8) {
+				ThrowAllocatedStringException(64, "Illegal BSON found, truncated Timestamp");
+			}
+
 			int32_t lowBits = ReadInt32();
 			int32_t highBits = ReadInt32();
 			Local<Value> argv[] = { Nan::New<Int32>(lowBits), Nan::New<Int32>(highBits) };
@@ -750,6 +778,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 		}
 
 	case BSON_TYPE_OID: {
+			if((pEnd - p) < 12) {
+				ThrowAllocatedStringException(64, "Illegal BSON found, truncated ObjectId");
+			}
+
 			Local<Value> argv[] = { ReadObjectId() };
 			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, argv);
 			return obj.ToLocalChecked();
@@ -762,12 +794,22 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 				ThrowAllocatedStringException(64, "binary bson object length must be >= 0");
 			}
 
+			// Illegal binary size
+			if(length > ((pEnd - p) + 4)) {
+				ThrowAllocatedStringException(64, "binary bson object size is longer than bson message");
+			}
+
 			uint32_t subType = ReadByte();
 			if(subType == 0x02) {
 				length = ReadInt32();
 
 				if(length < 0) {
 					ThrowAllocatedStringException(64, "binary bson type 0x02 object length must be >= 0");
+				}
+
+				// Illegal binary size
+				if(length > (pEnd - p)) {
+					ThrowAllocatedStringException(64, "binary bson object type 0x02 size is longer than bson message");
 				}
 			}
 
@@ -784,6 +826,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 		}
 
 	case BSON_TYPE_DECIMAL128: {
+		if((pEnd - p) < 16) {
+			ThrowAllocatedStringException(64, "Illegal BSON found, truncated Decimal128");
+		}
+
 		// Read the 16 bytes making up the decimal 128 value
 		Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, 16));
 		p += 16;
@@ -808,6 +854,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 	}
 
 	case BSON_TYPE_LONG: {
+			if((pEnd - p) < 8) {
+				ThrowAllocatedStringException(64, "Illegal BSON found, truncated Int64");
+			}
+
 			// Read 32 bit integers
 			int32_t lowBits = (int32_t) ReadInt32();
 			int32_t highBits = (int32_t) ReadInt32();
@@ -831,8 +881,13 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			return obj.ToLocalChecked();
 		}
 
-	case BSON_TYPE_DATE:
+	case BSON_TYPE_DATE: {
+		if((pEnd - p) < 8) {
+			ThrowAllocatedStringException(64, "Illegal BSON found, truncated DateTime");
+		}
+
 		return Unmaybe(Nan::New<Date>((double) ReadInt64()));
+	}
 
 	case BSON_TYPE_ARRAY:
 		return DeserializeArray();
