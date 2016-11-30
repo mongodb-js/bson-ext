@@ -865,7 +865,7 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, length));
 			p += length;
 
-			if (promoteBuffers) {
+			if (promoteBuffers && promoteValues) {
 				return buffer;
 			} else {
 				Local<Value> argv[] = { buffer, Nan::New<Uint32>(subType) };
@@ -912,7 +912,7 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			int32_t highBits = (int32_t) ReadInt32();
 
 			// Promote long is enabled
-			if(promoteLongs) {
+			if(promoteLongs && promoteValues) {
 				// If value is < 2^53 and >-2^53
 				if((highBits < 0x200000 || (highBits == 0x200000 && lowBits == 0)) && highBits >= -0x200000) {
 					// Adjust the pointer and read as 64 bit value
