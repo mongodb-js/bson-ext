@@ -537,7 +537,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 }
 
 // Data points to start of element list, length is length of entire document including '\0' but excluding initial size
-BSONDeserializer::BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues)
+BSONDeserializer::BSONDeserializer(BSON* aBson, char* data, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues, Local<Object> fieldsAsRaw)
 : bson(aBson),
   pStart(data),
   p(data),
@@ -545,12 +545,13 @@ BSONDeserializer::BSONDeserializer(BSON* aBson, char* data, size_t length, bool 
 	bsonRegExp(bsonRegExp),
 	promoteLongs(promoteLongs),
 	promoteBuffers(promoteBuffers),
-	promoteValues(promoteValues)
+	promoteValues(promoteValues),
+	fieldsAsRaw(fieldsAsRaw)
 {
 	if(*pEnd != '\0') ThrowAllocatedStringException(64, "Missing end of document marker '\\0'");
 }
 
-BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues)
+BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t length, bool bsonRegExp, bool promoteLongs, bool promoteBuffers, bool promoteValues, Local<Object> fieldsAsRaw)
 : bson(parentSerializer.bson),
   pStart(parentSerializer.p),
   p(parentSerializer.p),
@@ -558,7 +559,8 @@ BSONDeserializer::BSONDeserializer(BSONDeserializer& parentSerializer, size_t le
 	bsonRegExp(bsonRegExp),
 	promoteLongs(promoteLongs),
 	promoteBuffers(promoteBuffers),
-	promoteValues(promoteValues)
+	promoteValues(promoteValues),
+	fieldsAsRaw(fieldsAsRaw)
 {
 	parentSerializer.p += length;
 	if(pEnd > parentSerializer.pEnd) ThrowAllocatedStringException(64, "Child document exceeds parent's bounds");
@@ -640,14 +642,24 @@ Local<Object> BSONDeserializer::ReadObjectId() {
 	return Unmaybe(buffer);
 }
 
-Local<Value> BSONDeserializer::DeserializeDocument() {
+Local<Value> BSONDeserializer::DeserializeDocument(bool raw) {
 	const char* start = p;
 
 	uint32_t length = ReadUInt32();
 
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Document is less than 5 bytes");
 
-	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
+	// Do we deserialize as a raw value
+	if(raw) {
+		// Copy the whole bon object
+		Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p - 4, length));
+		// Adjust the length to the end of the object
+		p += length - 4;
+		// Return the new buffer
+		return buffer;
+	}
+
+	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues, fieldsAsRaw);
 	// Serialize the document
 	Local<Value> value = documentDeserializer.DeserializeDocumentInternal();
 
@@ -661,13 +673,35 @@ Local<Value> BSONDeserializer::DeserializeDocument() {
 
 Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 	Local<Object> returnObject = Unmaybe(Nan::New<Object>());
+	Local<String> propertyName;
+	bool raw = false;
 
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
 		const Local<Value>& name = ReadCString();
 		if(name->IsNull()) ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
-		// name->Is
-		const Local<Value>& value = DeserializeValue(type);
+
+		// Special case for fieldsAsRaw matching the name and the value being a ARRAY
+		if(type == BSON_TYPE_ARRAY && !Nan::MaybeLocal<Object>(fieldsAsRaw).IsEmpty()) {
+			// Get the object property names
+		  Local<Array> propertyNames = fieldsAsRaw->GetPropertyNames();
+
+			// Length of the property
+			int propertyLength = propertyNames->Length();
+			for(int i = 0;  i < propertyLength; ++i)
+			{
+				propertyName = NanGet(propertyNames, i)->ToString();
+
+				// We found a field that matches name wise, we now want to return a raw buffer
+				// instead of deserializing the array;
+				if(name->StrictEquals(propertyName)) {
+					raw = true;
+				}
+			}
+		}
+
+		// Deserialize the value
+		const Local<Value>& value = DeserializeValue(type, raw);
 		returnObject->Set(name, value);
 	}
 
@@ -684,15 +718,15 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 	}
 }
 
-Local<Value> BSONDeserializer::DeserializeArray() {
+Local<Value> BSONDeserializer::DeserializeArray(bool raw) {
 	uint32_t length = ReadUInt32();
 	if(length < 5) ThrowAllocatedStringException(64, "Bad BSON: Array Document is less than 5 bytes");
 
-	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
-	return documentDeserializer.DeserializeArrayInternal();
+	BSONDeserializer documentDeserializer(*this, length-4, bsonRegExp, promoteLongs, promoteBuffers, promoteValues, fieldsAsRaw);
+	return documentDeserializer.DeserializeArrayInternal(raw);
 }
 
-Local<Value> BSONDeserializer::DeserializeArrayInternal() {
+Local<Value> BSONDeserializer::DeserializeArrayInternal(bool raw) {
 	Local<Array> returnArray = Unmaybe(Nan::New<Array>());
 	uint32_t index = 0;
 
@@ -700,7 +734,7 @@ Local<Value> BSONDeserializer::DeserializeArrayInternal() {
 		BsonType type = (BsonType) ReadByte();
 		ReadIntegerString();
 		Local<Value> indexValue = Nan::New<Integer>(index++);
-		const Local<Value>& value = DeserializeValue(type);
+		const Local<Value>& value = DeserializeValue(type, raw);
 		returnArray->Set(indexValue, value);
 	}
 
@@ -708,7 +742,7 @@ Local<Value> BSONDeserializer::DeserializeArrayInternal() {
 	return returnArray;
 }
 
-Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
+Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 {
 	switch(type)
 	{
@@ -814,7 +848,7 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 			}
 
 			const Local<String>& code = ReadString();
-			const Local<Value>& scope = DeserializeDocument();
+			const Local<Value>& scope = DeserializeDocument(false);
 			char* const end = p;
 
 			if((end-start) != length) {
@@ -939,10 +973,10 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type)
 	}
 
 	case BSON_TYPE_ARRAY:
-		return DeserializeArray();
+		return DeserializeArray(raw);
 
 	case BSON_TYPE_OBJECT:
-		return DeserializeDocument();
+		return DeserializeDocument(raw);
 
 	case BSON_TYPE_SYMBOL: {
 			const Local<String>& string = ReadString();
@@ -1131,6 +1165,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
 	bool promoteBuffers = false;
 	bool bsonRegExp = false;
 	bool promoteValues = true;
+	Local<Object> fieldsAsRaw;
 
 	// If we have an options object
 	if(info.Length() == 2 && info[1]->IsObject()) {
@@ -1171,6 +1206,15 @@ NAN_METHOD(BSON::BSONDeserialize) {
 				return Nan::ThrowError("promoteValues argument must be a boolean");
 			}
 		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "fieldsAsRaw")) {
+			if(NanGet(options, "fieldsAsRaw")->IsObject()) {
+				fieldsAsRaw = NanGet(options, "fieldsAsRaw")->ToObject();
+			} else {
+				return Nan::ThrowError("promoteValues argument must be a boolean");
+			}
+		}
 	}
 
 	// Define pointer to data
@@ -1194,8 +1238,8 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		if(length < 5) return Nan::ThrowError("corrupt bson message < 5 bytes long");
 
 		try {
-			BSONDeserializer deserializer(bson, data, length, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
-			info.GetReturnValue().Set(deserializer.DeserializeDocument());
+			BSONDeserializer deserializer(bson, data, length, bsonRegExp, promoteLongs, promoteBuffers, promoteValues, fieldsAsRaw);
+			info.GetReturnValue().Set(deserializer.DeserializeDocument(false));
 		} catch(char* exception) {
 			Local<String> error = NanStr(exception);
 			free(exception);
@@ -1214,9 +1258,9 @@ NAN_METHOD(BSON::BSONDeserialize) {
 		Nan::DecodeWrite(data, len, info[0]);
 
 		try {
-			BSONDeserializer deserializer(bson, data, len, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
+			BSONDeserializer deserializer(bson, data, len, bsonRegExp, promoteLongs, promoteBuffers, promoteValues, fieldsAsRaw);
 			// deserializer.promoteLongs = promoteLongs;
-			Local<Value> result = deserializer.DeserializeDocument();
+			Local<Value> result = deserializer.DeserializeDocument(false);
 			free(data);
 			info.GetReturnValue().Set(result);
 
@@ -1493,6 +1537,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	bool promoteBuffers = false;
 	bool bsonRegExp = false;
 	bool promoteValues = true;
+	Local<Object> fieldsAsRaw;
 
 	// Check for the value promoteLongs in the options object
 	if(info.Length() == 6) {
@@ -1533,6 +1578,15 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 				return Nan::ThrowError("promoteValues argument must be a boolean");
 			}
 		}
+
+		// Check if we have the promoteLongs variable
+		if(NanHas(options, "fieldsAsRaw")) {
+			if(NanGet(options, "fieldsAsRaw")->IsObject()) {
+				fieldsAsRaw = NanGet(options, "fieldsAsRaw")->ToObject();
+			} else {
+				return Nan::ThrowError("promoteValues argument must be a boolean");
+			}
+		}
 	}
 
 	// Unpack the BSON parser instance
@@ -1551,10 +1605,10 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
 	// Fetch the documents
 	Local<Object> documents = info[3]->ToObject();
 
-	BSONDeserializer deserializer(bson, data+index, length-index, bsonRegExp, promoteLongs, promoteBuffers, promoteValues);
+	BSONDeserializer deserializer(bson, data+index, length-index, bsonRegExp, promoteLongs, promoteBuffers, promoteValues, fieldsAsRaw);
 	for(uint32_t i = 0; i < numberOfDocuments; i++) {
 		try {
-			documents->Set(i + resultIndex, deserializer.DeserializeDocument());
+			documents->Set(i + resultIndex, deserializer.DeserializeDocument(false));
 		} catch (char* exception) {
 		  Local<String> error = NanStr(exception);
 			free(exception);
