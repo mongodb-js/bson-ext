@@ -176,7 +176,34 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value
 	Local<String> propertyName;
 	Local<Value> propertyValue;
 
-	if(NanHas(object, "entries") && NanHas(object, "keys") && NanHas(object, "values")) {
+	if(!NanHas(object, "entries")) {
+		// Get the object property names
+	  Local<Array> propertyNames = object->GetPropertyNames();
+
+		// Length of the property
+		int propertyLength = propertyNames->Length();
+		for(int i = 0;  i < propertyLength; ++i)
+		{
+			propertyName = NanGet(propertyNames, i)->ToString();
+			if(checkKeys) this->CheckKey(propertyName);
+			propertyValue = NanGet(object, propertyName);
+
+			// We are not serializing the function
+			if(!serializeFunctions && propertyValue->IsFunction()) {
+				continue;
+			}
+
+			// We are ignoring undefined values
+			if(ignoreUndefined && propertyValue->IsUndefined()) {
+				continue;
+			}
+
+			// Serialize the value
+			void* typeLocation = this->BeginWriteType();
+			this->WriteString(propertyName);
+			SerializeValue(typeLocation, propertyValue, false);
+		}
+	} else {
 		// Get the entries function
 		const Local<Value>& entries = NanGet(object, "entries");
 		if(!entries->IsFunction()) ThrowAllocatedStringException(64, "Map.entries is not a function");
@@ -206,33 +233,6 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value
 			if(checkKeys) this->CheckKey(propertyName);
 			// Get the property value
 			propertyValue = NanGet(value, "1");
-
-			// We are not serializing the function
-			if(!serializeFunctions && propertyValue->IsFunction()) {
-				continue;
-			}
-
-			// We are ignoring undefined values
-			if(ignoreUndefined && propertyValue->IsUndefined()) {
-				continue;
-			}
-
-			// Serialize the value
-			void* typeLocation = this->BeginWriteType();
-			this->WriteString(propertyName);
-			SerializeValue(typeLocation, propertyValue, false);
-		}
-	} else {
-		// Get the object property names
-	  Local<Array> propertyNames = object->GetPropertyNames();
-
-		// Length of the property
-		int propertyLength = propertyNames->Length();
-		for(int i = 0;  i < propertyLength; ++i)
-		{
-			propertyName = NanGet(propertyNames, i)->ToString();
-			if(checkKeys) this->CheckKey(propertyName);
-			propertyValue = NanGet(object, propertyName);
 
 			// We are not serializing the function
 			if(!serializeFunctions && propertyValue->IsFunction()) {
@@ -281,17 +281,6 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 {
 	Local<Value> value = constValue;
 
-	// Check for toBSON function
-	if(value->IsObject()) {
-		Local<Object> object = value->ToObject();
-
-		if(NanHas(object, "toBSON")) {
-			const Local<Value>& toBSON = NanGet(object, "toBSON");
-			if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
-			value = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
-		}
-	}
-
 	// Process all the values
 	if(value->IsNumber())
 	{
@@ -313,6 +302,11 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 		this->CommitType(typeLocation, BSON_TYPE_STRING);
 		this->WriteLengthPrefixedString(value->ToString());
 	}
+	else if(value->IsDate())
+	{
+		this->CommitType(typeLocation, BSON_TYPE_DATE);
+		this->WriteInt64(value);
+	}
 	else if(value->IsBoolean())
 	{
 		this->CommitType(typeLocation, BSON_TYPE_BOOLEAN);
@@ -323,10 +317,10 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 		this->CommitType(typeLocation, BSON_TYPE_ARRAY);
 		SerializeArray(value);
 	}
-	else if(value->IsDate())
+	else if(value->IsFunction())
 	{
-		this->CommitType(typeLocation, BSON_TYPE_DATE);
-		this->WriteInt64(value);
+		this->CommitType(typeLocation, BSON_TYPE_CODE);
+		this->WriteLengthPrefixedString(value->ToString());
 	}
 	else if(value->IsRegExp())
 	{
@@ -347,36 +341,39 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 		if(flags & RegExp::kMultiline) this->WriteByte('m');
 		this->WriteByte(0);
 	}
-	else if(value->IsFunction())
-	{
-		this->CommitType(typeLocation, BSON_TYPE_CODE);
-		this->WriteLengthPrefixedString(value->ToString());
-	}
 	else if(value->IsObject())
 	{
-		const Local<Object>& object = value->ToObject();
+		Local<Object> object = value->ToObject();
+		// Check for toBSON function
+		if(NanHas(object, "toBSON")) {
+			const Local<Value>& toBSON = NanGet(object, "toBSON");
+			if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
+			value = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
+		}
+
+		object = value->ToObject();
 		if(NanHas(object, BSONTYPE_PROPERTY_NAME))
 		{
 			const Local<String>& constructorString = NanGet(object, BSONTYPE_PROPERTY_NAME)->ToString();
 
-			if(NanStr(LONG_CLASS_NAME)->StrictEquals(constructorString))
+			if(Nan::New(bson->LONG_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_LONG);
-				this->WriteInt32(object, NanStr(LONG_LOW_PROPERTY_NAME));
-				this->WriteInt32(object, NanStr(LONG_HIGH_PROPERTY_NAME));
+				this->WriteInt32(object, Nan::New(bson->LONG_LOW_PROPERTY_NAME_STR));
+				this->WriteInt32(object, Nan::New(bson->LONG_HIGH_PROPERTY_NAME_STR));
 			}
-			else if(NanStr(TIMESTAMP_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->TIMESTAMP_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_TIMESTAMP);
-				this->WriteInt32(object, NanStr(LONG_LOW_PROPERTY_NAME));
-				this->WriteInt32(object, NanStr(LONG_HIGH_PROPERTY_NAME));
+				this->WriteInt32(object, Nan::New(bson->LONG_LOW_PROPERTY_NAME_STR));
+				this->WriteInt32(object, Nan::New(bson->LONG_HIGH_PROPERTY_NAME_STR));
 			}
-			else if(NanStr(OBJECT_ID_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->OBJECT_ID_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_OID);
-				this->WriteObjectId(object, NanStr(OBJECT_ID_ID_PROPERTY_NAME));
+				this->WriteObjectId(object, Nan::New(bson->OBJECT_ID_ID_PROPERTY_NAME_STR));
 			}
-			else if(NanStr(BINARY_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->BINARY_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_BINARY);
 
@@ -400,7 +397,8 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				// Write the actual data
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
-			else if(NanStr(DECIMAL128_CLASS_NAME)->StrictEquals(constructorString)) {
+			else if(Nan::New(bson->DECIMAL128_CLASS_NAME_STR)->Equals(constructorString))
+			{
 				this->CommitType(typeLocation, BSON_TYPE_DECIMAL128);
 				// Get the bytes length
 				uint32_t length = (uint32_t)node::Buffer::Length(NanGet(object, DECIMAL128_VALUE_PROPERTY_NAME));
@@ -409,22 +407,22 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				// Write the actual decimal128 bytes
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
-			else if(NanStr(DOUBLE_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->DOUBLE_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_NUMBER);
 				this->WriteDouble(object, NanStr(DOUBLE_VALUE_PROPERTY_NAME));
 			}
-			else if(NanStr(INT32_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->INT32_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_INT);
 				this->WriteInt32(object, NanStr(INT32_VALUE_PROPERTY_NAME));
 			}
-			else if(NanStr(SYMBOL_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->SYMBOL_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_SYMBOL);
 				this->WriteLengthPrefixedString(NanGet(object, SYMBOL_VALUE_PROPERTY_NAME)->ToString());
 			}
-			else if(NanStr(CODE_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->CODE_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				const Local<String>& function = NanGet(object, CODE_CODE_PROPERTY_NAME)->ToString();
 				// Does the code object have a defined scope
@@ -447,7 +445,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 					this->WriteLengthPrefixedString(function->ToString());
 				}
 			}
-			else if(NanStr(DBREF_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->DBREF_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_OBJECT);
 
@@ -472,7 +470,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				this->WriteByte(0);
 				this->CommitSize(dbRefSize);
 			}
-			else if(NanStr(REGEXP_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->REGEXP_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_REGEXP);
 				// Get the pattern string
@@ -488,11 +486,11 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				// Write the 0 terminated string
 				this->WriteString(options);
 			}
-			else if(NanStr(MIN_KEY_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->MIN_KEY_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_MIN_KEY);
 			}
-			else if(NanStr(MAX_KEY_CLASS_NAME)->StrictEquals(constructorString))
+			else if(Nan::New(bson->MAX_KEY_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_MAX_KEY);
 			}
@@ -1074,6 +1072,35 @@ NAN_METHOD(BSON::New) {
 			// Create a bson object instance and return it
 			BSON *bson = new BSON();
 			bson->maxBSONSize = maxBSONSize;
+			// Long field names
+			bson->LONG_CLASS_NAME_STR.Reset(Nan::New<String>(LONG_CLASS_NAME).ToLocalChecked());
+			bson->LONG_LOW_PROPERTY_NAME_STR.Reset(Nan::New<String>(LONG_LOW_PROPERTY_NAME).ToLocalChecked());
+			bson->LONG_HIGH_PROPERTY_NAME_STR.Reset(Nan::New<String>(LONG_HIGH_PROPERTY_NAME).ToLocalChecked());
+			// Timestamp field names
+			bson->TIMESTAMP_CLASS_NAME_STR.Reset(Nan::New<String>(TIMESTAMP_CLASS_NAME).ToLocalChecked());
+			// ObjectId field names
+			bson->OBJECT_ID_CLASS_NAME_STR.Reset(Nan::New<String>(OBJECT_ID_CLASS_NAME).ToLocalChecked());
+			bson->OBJECT_ID_ID_PROPERTY_NAME_STR.Reset(Nan::New<String>(OBJECT_ID_ID_PROPERTY_NAME).ToLocalChecked());
+			// Binary field names
+			bson->BINARY_CLASS_NAME_STR.Reset(Nan::New<String>(BINARY_CLASS_NAME).ToLocalChecked());
+			// Decimal128 field names
+			bson->DECIMAL128_CLASS_NAME_STR.Reset(Nan::New<String>(DECIMAL128_CLASS_NAME).ToLocalChecked());
+			// Double field names
+			bson->DOUBLE_CLASS_NAME_STR.Reset(Nan::New<String>(DOUBLE_CLASS_NAME).ToLocalChecked());
+			// Int32 field names
+			bson->INT32_CLASS_NAME_STR.Reset(Nan::New<String>(INT32_CLASS_NAME).ToLocalChecked());
+			// Symbol field names
+			bson->SYMBOL_CLASS_NAME_STR.Reset(Nan::New<String>(SYMBOL_CLASS_NAME).ToLocalChecked());
+			// Symbol field names
+			bson->CODE_CLASS_NAME_STR.Reset(Nan::New<String>(CODE_CLASS_NAME).ToLocalChecked());
+			// DBRef field names
+			bson->DBREF_CLASS_NAME_STR.Reset(Nan::New<String>(DBREF_CLASS_NAME).ToLocalChecked());
+			// DBRef field names
+			bson->REGEXP_CLASS_NAME_STR.Reset(Nan::New<String>(REGEXP_CLASS_NAME).ToLocalChecked());
+			// MaxKey field names
+			bson->MAX_KEY_CLASS_NAME_STR.Reset(Nan::New<String>(MAX_KEY_CLASS_NAME).ToLocalChecked());
+			// MinKey field names
+			bson->MIN_KEY_CLASS_NAME_STR.Reset(Nan::New<String>(MIN_KEY_CLASS_NAME).ToLocalChecked());
 
 			// Allocate a new Buffer
 			bson->buffer.Reset(Unmaybe(Nan::NewBuffer(sizeof(char) * maxBSONSize)));
