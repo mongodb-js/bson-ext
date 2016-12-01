@@ -344,14 +344,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	else if(value->IsObject())
 	{
 		Local<Object> object = value->ToObject();
-		// Check for toBSON function
-		if(NanHas(object, "toBSON")) {
-			const Local<Value>& toBSON = NanGet(object, "toBSON");
-			if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
-			value = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
-		}
 
-		object = value->ToObject();
 		if(NanHas(object, BSONTYPE_PROPERTY_NAME))
 		{
 			const Local<String>& constructorString = NanGet(object, BSONTYPE_PROPERTY_NAME)->ToString();
@@ -512,6 +505,14 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 		}
 		else
 		{
+			// Check for toBSON function
+			if(NanHas(object, "toBSON")) {
+				const Local<Value>& toBSON = NanGet(object, "toBSON");
+				if(!toBSON->IsFunction()) ThrowAllocatedStringException(64, "toBSON is not a function");
+				value = Local<Function>::Cast(toBSON)->Call(object, 0, NULL);
+				return SerializeValue(typeLocation, value, false);
+			}
+
 			this->CommitType(typeLocation, BSON_TYPE_OBJECT);
 			SerializeDocument(value);
 		}
