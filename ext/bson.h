@@ -39,6 +39,8 @@ using v8::FunctionTemplate;
 using Nan::Persistent;
 using Nan::ObjectWrap;
 
+const int preLoadedIndex = 10000;
+
 #define NanStr(x) (Unmaybe(Nan::New<String>(x)))
 #define NanHas(obj, key) (Nan::Has(obj, NanKey(key)).FromJust())
 #define NanGet(obj, key) (Unmaybe(Nan::Get(obj, NanKey(key))))
@@ -128,6 +130,14 @@ public:
 	// Constructor used for creating new BSON objects from C++
 	static Persistent<FunctionTemplate> constructor_template;
 
+  // Get the data
+  static void initializeStatics();
+
+  // Static cache
+  static Nan::Persistent<Integer> indexes[preLoadedIndex];
+  static Nan::Persistent<String> indexesStrings[preLoadedIndex];
+  static bool initialized;
+
 public:
 	Persistent<Object> buffer;
 	size_t maxBSONSize;
@@ -142,7 +152,7 @@ public:
   // ObjectId
   Nan::Persistent<String> OBJECT_ID_CLASS_NAME_STR;
   Nan::Persistent<String> OBJECT_ID_ID_PROPERTY_NAME_STR;
-  
+
   // Binary
   Nan::Persistent<String> BINARY_CLASS_NAME_STR;
   // Decimal128
@@ -163,6 +173,10 @@ public:
   Nan::Persistent<String> MIN_KEY_CLASS_NAME_STR;
   // MinKey
   Nan::Persistent<String> MAX_KEY_CLASS_NAME_STR;
+
+  // Pre-calculated indexes
+  // Nan::Persistent<Integer> indexes[preLoadedIndex];
+  // Nan::Persistent<String> indexesStrings[preLoadedIndex];
 
 private:
 	static NAN_METHOD(New);

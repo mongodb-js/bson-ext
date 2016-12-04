@@ -267,7 +267,12 @@ template<typename T> void BSONSerializer<T>::SerializeArray(const Local<Value>& 
 	{
 		void* typeLocation = this->BeginWriteType();
 		this->WriteUInt32String(i);
-		SerializeValue(typeLocation, NanGet(array, i), true);
+
+		if(i >= preLoadedIndex) {
+			SerializeValue(typeLocation, NanGet(array, i), true);
+		} else {
+			SerializeValue(typeLocation, NanGet(array, BSON::indexesStrings[i]), true);
+		}
 	}
 
 	this->WriteByte(0);
@@ -305,7 +310,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	else if(value->IsDate())
 	{
 		this->CommitType(typeLocation, BSON_TYPE_DATE);
-		this->WriteInt64(value);
+		this->WriteInt64(value->NumberValue());
 	}
 	else if(value->IsBoolean())
 	{
@@ -316,30 +321,6 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	{
 		this->CommitType(typeLocation, BSON_TYPE_ARRAY);
 		SerializeArray(value);
-	}
-	else if(value->IsFunction())
-	{
-		this->CommitType(typeLocation, BSON_TYPE_CODE);
-		this->WriteLengthPrefixedString(value->ToString());
-	}
-	else if(value->IsRegExp())
-	{
-		this->CommitType(typeLocation, BSON_TYPE_REGEXP);
-		const Local<RegExp>& regExp = Local<RegExp>::Cast(value);
-		const Local<String> regExpString = regExp->GetSource()->ToString();
-
-		// Validate if the string is valid
-		this->CheckForIllegalString(regExpString);
-
-		// Write the regular expression string
-		this->WriteString(regExpString);
-
-		// Unpack the flags
-		int flags = regExp->GetFlags();
-		if(flags & RegExp::kGlobal) this->WriteByte('s');
-		if(flags & RegExp::kIgnoreCase) this->WriteByte('i');
-		if(flags & RegExp::kMultiline) this->WriteByte('m');
-		this->WriteByte(0);
 	}
 	else if(value->IsObject())
 	{
@@ -488,6 +469,11 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 				this->CommitType(typeLocation, BSON_TYPE_MAX_KEY);
 			}
 		}
+		else if(value->IsFunction())
+		{
+			this->CommitType(typeLocation, BSON_TYPE_CODE);
+			this->WriteLengthPrefixedString(value->ToString());
+		}
 		else if(node::Buffer::HasInstance(value))
 		{
 			this->CommitType(typeLocation, BSON_TYPE_BINARY);
@@ -502,6 +488,25 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			this->WriteInt32(length);
 			this->WriteByte(0);
 			this->WriteData(node::Buffer::Data(value->ToObject()), length);
+		}
+		else if(value->IsRegExp())
+		{
+			this->CommitType(typeLocation, BSON_TYPE_REGEXP);
+			const Local<RegExp>& regExp = Local<RegExp>::Cast(value);
+			const Local<String> regExpString = regExp->GetSource()->ToString();
+
+			// Validate if the string is valid
+			this->CheckForIllegalString(regExpString);
+
+			// Write the regular expression string
+			this->WriteString(regExpString);
+
+			// Unpack the flags
+			int flags = regExp->GetFlags();
+			if(flags & RegExp::kGlobal) this->WriteByte('s');
+			if(flags & RegExp::kIgnoreCase) this->WriteByte('i');
+			if(flags & RegExp::kMultiline) this->WriteByte('m');
+			return this->WriteByte(0);
 		}
 		else
 		{
@@ -732,9 +737,13 @@ Local<Value> BSONDeserializer::DeserializeArrayInternal(bool raw) {
 	while(HasMoreData()) {
 		BsonType type = (BsonType) ReadByte();
 		ReadIntegerString();
-		Local<Value> indexValue = Nan::New<Integer>(index++);
 		const Local<Value>& value = DeserializeValue(type, raw);
-		returnArray->Set(indexValue, value);
+
+		if(index >= preLoadedIndex) {
+			returnArray->Set(Nan::New<Integer>(index++), value);
+		} else {
+			returnArray->Set(Nan::New(BSON::indexes[index++]), value);
+		}
 	}
 
 	if(p != pEnd) ThrowAllocatedStringException(64, "Bad BSON Array: Serialize consumed unexpected number of bytes");
@@ -1003,6 +1012,9 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 
 // statics
 Persistent<FunctionTemplate> BSON::constructor_template;
+Nan::Persistent<Integer> BSON::indexes[preLoadedIndex];
+Nan::Persistent<String> BSON::indexesStrings[preLoadedIndex];
+bool BSON::initialized;
 
 BSON::BSON() : ObjectWrap()
 {
@@ -1025,6 +1037,19 @@ BSON::~BSON()
 	timestampConstructor.Reset();
 	minKeyConstructor.Reset();
 	maxKeyConstructor.Reset();
+}
+
+void BSON::initializeStatics() {
+ 	if(!initialized) {
+		// Pre-load `indexes` for array serialization/deserialize
+	 	for(int32_t index = 0; index < preLoadedIndex; index++) {
+	 		indexes[index].Reset(Nan::New<Integer>(index));
+	 		indexesStrings[index].Reset(Nan::New<Integer>(index)->ToString());
+	 	}
+
+		// Set initialized to true
+ 		initialized = true;
+ 	}
 }
 
 void BSON::Initialize(v8::Local<v8::Object> target) {
@@ -1072,6 +1097,9 @@ NAN_METHOD(BSON::New) {
 		if(array->Length() > 0) {
 			// Create a bson object instance and return it
 			BSON *bson = new BSON();
+			// Initialize global values
+			BSON::initializeStatics();
+			// Set max BSON size
 			bson->maxBSONSize = maxBSONSize;
 			// Long field names
 			bson->LONG_CLASS_NAME_STR.Reset(Nan::New<String>(LONG_CLASS_NAME).ToLocalChecked());
