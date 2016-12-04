@@ -146,37 +146,33 @@ public:
   Nan::Persistent<String> LONG_CLASS_NAME_STR;
   Nan::Persistent<String> LONG_LOW_PROPERTY_NAME_STR;
   Nan::Persistent<String> LONG_HIGH_PROPERTY_NAME_STR;
-
-  // Timestamp cached labels
   Nan::Persistent<String> TIMESTAMP_CLASS_NAME_STR;
-  // ObjectId
   Nan::Persistent<String> OBJECT_ID_CLASS_NAME_STR;
   Nan::Persistent<String> OBJECT_ID_ID_PROPERTY_NAME_STR;
-
-  // Binary
   Nan::Persistent<String> BINARY_CLASS_NAME_STR;
-  // Decimal128
   Nan::Persistent<String> DECIMAL128_CLASS_NAME_STR;
-  // Double
   Nan::Persistent<String> DOUBLE_CLASS_NAME_STR;
-  // Int32
   Nan::Persistent<String> INT32_CLASS_NAME_STR;
-  // Symbol
   Nan::Persistent<String> SYMBOL_CLASS_NAME_STR;
-  // Code
   Nan::Persistent<String> CODE_CLASS_NAME_STR;
-  // DBRef
   Nan::Persistent<String> DBREF_CLASS_NAME_STR;
-  // RegExp
   Nan::Persistent<String> REGEXP_CLASS_NAME_STR;
-  // MaxKey
   Nan::Persistent<String> MIN_KEY_CLASS_NAME_STR;
-  // MinKey
   Nan::Persistent<String> MAX_KEY_CLASS_NAME_STR;
-
-  // Pre-calculated indexes
-  // Nan::Persistent<Integer> indexes[preLoadedIndex];
-  // Nan::Persistent<String> indexesStrings[preLoadedIndex];
+  Nan::Persistent<String> BINARY_POSITION_PROPERTY_NAME_STR;
+  Nan::Persistent<String> BINARY_BUFFER_PROPERTY_NAME_STR;
+  Nan::Persistent<String> BINARY_SUBTYPE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> DECIMAL128_VALUE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> DOUBLE_VALUE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> INT32_VALUE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> SYMBOL_VALUE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> CODE_CODE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> CODE_SCOPE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> DBREF_NAMESPACE_PROPERTY_NAME_STR;
+  Nan::Persistent<String> DBREF_OID_PROPERTY_NAME_STR;
+  Nan::Persistent<String> DBREF_DB_PROPERTY_NAME_STR;
+  Nan::Persistent<String> REGEX_PATTERN_PROPERTY_NAME_STR;
+  Nan::Persistent<String> REGEX_OPTIONS_PROPERTY_NAME_STR;
 
 private:
 	static NAN_METHOD(New);

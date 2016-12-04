@@ -39,7 +39,7 @@ function generateRecord(recnum) {
     // fieldval = new Date(tf * recnum) //A date
     // fieldval = "Lorem ipsum dolor sit amet, consectetur adipiscing elit." //Text
     // fieldval = BSON.Long(recnum + tf) // A 64 bit integer
-    fieldval = [BSON.Long(recnum + tf), BSON.Long(recnum + tf), BSON.Long(recnum + tf)]
+    // fieldval = [BSON.Long(recnum + tf), BSON.Long(recnum + tf), BSON.Long(recnum + tf)]
     rec[fldpfx + tf] = fieldval
   }
 
@@ -66,7 +66,7 @@ function generateRecord(recnum) {
       // fieldval = new Date(tf * recnum * el)
       // fieldval = "Nunc finibus pretium dignissim. Aenean ut nisi finibus"
       // fieldval = BSON.Long(recnum + tf * el)
-      fieldval = [BSON.Long(recnum + tf * el), BSON.Long(recnum + tf * el), BSON.Long(recnum + tf * el)]
+      // fieldval = [BSON.Long(recnum + tf * el), BSON.Long(recnum + tf * el), BSON.Long(recnum + tf * el)]
       subrec['subval' + subRecField] = fieldval
     }
     rec['arr'].push(subrec)

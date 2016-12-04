@@ -351,19 +351,19 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			{
 				this->CommitType(typeLocation, BSON_TYPE_BINARY);
 
-				uint32_t length = NanGet(object, BINARY_POSITION_PROPERTY_NAME)->Uint32Value();
-				Local<Object> bufferObj = NanGet(object, BINARY_BUFFER_PROPERTY_NAME)->ToObject();
+				uint32_t length = NanGet(object, Nan::New(bson->BINARY_POSITION_PROPERTY_NAME_STR))->Uint32Value();
+				Local<Object> bufferObj = NanGet(object, Nan::New(bson->BINARY_BUFFER_PROPERTY_NAME_STR))->ToObject();
 
 				// Add the deprecated 02 type 4 bytes of size to total
-				if(NanGet(object, BINARY_SUBTYPE_PROPERTY_NAME)->Int32Value() == 0x02) {
+				if(NanGet(object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))->Int32Value() == 0x02) {
 					length = length + 4;
 				}
 
 				this->WriteInt32(length);
-				this->WriteByte(object, NanStr(BINARY_SUBTYPE_PROPERTY_NAME));	// write subtype
+				this->WriteByte(object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR));	// write subtype
 
 				// If type 0x02 write the array length aswell
-				if(NanGet(object, BINARY_SUBTYPE_PROPERTY_NAME)->Int32Value() == 0x02) {
+				if(NanGet(object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))->Int32Value() == 0x02) {
 					length = length - 4;
 					this->WriteInt32(length);
 				}
@@ -375,38 +375,38 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			{
 				this->CommitType(typeLocation, BSON_TYPE_DECIMAL128);
 				// Get the bytes length
-				uint32_t length = (uint32_t)node::Buffer::Length(NanGet(object, DECIMAL128_VALUE_PROPERTY_NAME));
+				uint32_t length = (uint32_t)node::Buffer::Length(NanGet(object, Nan::New(bson->DECIMAL128_VALUE_PROPERTY_NAME_STR)));
 				// Get the bytes buffer object
-				Local<Object> bufferObj = NanGet(object, DECIMAL128_VALUE_PROPERTY_NAME)->ToObject();
+				Local<Object> bufferObj = NanGet(object, Nan::New(bson->DECIMAL128_VALUE_PROPERTY_NAME_STR))->ToObject();
 				// Write the actual decimal128 bytes
 				this->WriteData(node::Buffer::Data(bufferObj), length);
 			}
 			else if(Nan::New(bson->DOUBLE_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_NUMBER);
-				this->WriteDouble(object, NanStr(DOUBLE_VALUE_PROPERTY_NAME));
+				this->WriteDouble(object, Nan::New(bson->DOUBLE_VALUE_PROPERTY_NAME_STR));
 			}
 			else if(Nan::New(bson->INT32_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_INT);
-				this->WriteInt32(object, NanStr(INT32_VALUE_PROPERTY_NAME));
+				this->WriteInt32(object, Nan::New(bson->INT32_VALUE_PROPERTY_NAME_STR));
 			}
 			else if(Nan::New(bson->SYMBOL_CLASS_NAME_STR)->Equals(constructorString))
 			{
 				this->CommitType(typeLocation, BSON_TYPE_SYMBOL);
-				this->WriteLengthPrefixedString(NanGet(object, SYMBOL_VALUE_PROPERTY_NAME)->ToString());
+				this->WriteLengthPrefixedString(NanGet(object, Nan::New(bson->SYMBOL_VALUE_PROPERTY_NAME_STR))->ToString());
 			}
 			else if(Nan::New(bson->CODE_CLASS_NAME_STR)->Equals(constructorString))
 			{
-				const Local<String>& function = NanGet(object, CODE_CODE_PROPERTY_NAME)->ToString();
+				const Local<String>& function = NanGet(object, Nan::New(bson->CODE_CODE_PROPERTY_NAME_STR))->ToString();
 				// Does the code object have a defined scope
-				bool hasScope = NanHas(object, CODE_SCOPE_PROPERTY_NAME)
-					&& NanGet(object, CODE_SCOPE_PROPERTY_NAME)->IsObject()
-					&& !NanGet(object, CODE_SCOPE_PROPERTY_NAME)->IsNull();
+				bool hasScope = NanHas(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR))
+					&& NanGet(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR))->IsObject()
+					&& !NanGet(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR))->IsNull();
 
 				if(hasScope)
 				{
-					const Local<Object>& scope = NanGet(object, CODE_SCOPE_PROPERTY_NAME)->ToObject();
+					const Local<Object>& scope = NanGet(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR))->ToObject();
 					this->CommitType(typeLocation, BSON_TYPE_CODE_W_SCOPE);
 					void* codeWidthScopeSize = this->BeginWriteSize();
 					this->WriteLengthPrefixedString(function->ToString());
@@ -427,13 +427,13 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 
 				void* refType = this->BeginWriteType();
 				this->WriteData("$ref", 5);
-				SerializeValue(refType, NanGet(object, DBREF_NAMESPACE_PROPERTY_NAME), false);
+				SerializeValue(refType, NanGet(object, Nan::New(bson->DBREF_NAMESPACE_PROPERTY_NAME_STR)), false);
 
 				void* idType = this->BeginWriteType();
 				this->WriteData("$id", 4);
-				SerializeValue(idType, NanGet(object, DBREF_OID_PROPERTY_NAME), false);
+				SerializeValue(idType, NanGet(object, Nan::New(bson->DBREF_OID_PROPERTY_NAME_STR)), false);
 
-				const Local<Value>& refDbValue = NanGet(object, DBREF_DB_PROPERTY_NAME);
+				const Local<Value>& refDbValue = NanGet(object, Nan::New(bson->DBREF_DB_PROPERTY_NAME_STR));
 				if(!refDbValue->IsUndefined())
 				{
 					void* dbType = this->BeginWriteType();
@@ -448,13 +448,13 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 			{
 				this->CommitType(typeLocation, BSON_TYPE_REGEXP);
 				// Get the pattern string
-				Local<String> pattern = NanGet(object, REGEX_PATTERN_PROPERTY_NAME)->ToString();
+				Local<String> pattern = NanGet(object, Nan::New(bson->REGEX_PATTERN_PROPERTY_NAME_STR))->ToString();
 				// Validate if the pattern is valid
 				this->CheckForIllegalString(pattern);
 				// Write the 0 terminated string
 				this->WriteString(pattern);
 				// Get the options string
-				Local<String> options = NanGet(object, REGEX_OPTIONS_PROPERTY_NAME)->ToString();
+				Local<String> options = NanGet(object, Nan::New(bson->REGEX_OPTIONS_PROPERTY_NAME_STR))->ToString();
 				// Validate if the options is valid
 				this->CheckForIllegalString(options);
 				// Write the 0 terminated string
@@ -1037,6 +1037,38 @@ BSON::~BSON()
 	timestampConstructor.Reset();
 	minKeyConstructor.Reset();
 	maxKeyConstructor.Reset();
+
+	// Labels
+	LONG_CLASS_NAME_STR.Reset();
+	LONG_LOW_PROPERTY_NAME_STR.Reset();
+	LONG_HIGH_PROPERTY_NAME_STR.Reset();
+	TIMESTAMP_CLASS_NAME_STR.Reset();
+	OBJECT_ID_CLASS_NAME_STR.Reset();
+	OBJECT_ID_ID_PROPERTY_NAME_STR.Reset();
+	BINARY_CLASS_NAME_STR.Reset();
+	DECIMAL128_CLASS_NAME_STR.Reset();
+	DECIMAL128_VALUE_PROPERTY_NAME_STR.Reset();
+	DOUBLE_CLASS_NAME_STR.Reset();
+	DOUBLE_VALUE_PROPERTY_NAME_STR.Reset();
+	INT32_CLASS_NAME_STR.Reset();
+	INT32_VALUE_PROPERTY_NAME_STR.Reset();
+	SYMBOL_CLASS_NAME_STR.Reset();
+	CODE_CLASS_NAME_STR.Reset();
+	DBREF_CLASS_NAME_STR.Reset();
+	REGEXP_CLASS_NAME_STR.Reset();
+	MAX_KEY_CLASS_NAME_STR.Reset();
+	MIN_KEY_CLASS_NAME_STR.Reset();
+	BINARY_POSITION_PROPERTY_NAME_STR.Reset();
+	BINARY_BUFFER_PROPERTY_NAME_STR.Reset();
+	BINARY_SUBTYPE_PROPERTY_NAME_STR.Reset();
+	SYMBOL_VALUE_PROPERTY_NAME_STR.Reset();
+	CODE_CODE_PROPERTY_NAME_STR.Reset();
+	CODE_SCOPE_PROPERTY_NAME_STR.Reset();
+	DBREF_NAMESPACE_PROPERTY_NAME_STR.Reset();
+	DBREF_OID_PROPERTY_NAME_STR.Reset();
+	DBREF_DB_PROPERTY_NAME_STR.Reset();
+	REGEX_PATTERN_PROPERTY_NAME_STR.Reset();
+	REGEX_OPTIONS_PROPERTY_NAME_STR.Reset();
 }
 
 void BSON::initializeStatics() {
@@ -1101,35 +1133,37 @@ NAN_METHOD(BSON::New) {
 			BSON::initializeStatics();
 			// Set max BSON size
 			bson->maxBSONSize = maxBSONSize;
-			// Long field names
+			// Create cached labels (avoid translation cost for every lookup)
 			bson->LONG_CLASS_NAME_STR.Reset(Nan::New<String>(LONG_CLASS_NAME).ToLocalChecked());
 			bson->LONG_LOW_PROPERTY_NAME_STR.Reset(Nan::New<String>(LONG_LOW_PROPERTY_NAME).ToLocalChecked());
 			bson->LONG_HIGH_PROPERTY_NAME_STR.Reset(Nan::New<String>(LONG_HIGH_PROPERTY_NAME).ToLocalChecked());
-			// Timestamp field names
 			bson->TIMESTAMP_CLASS_NAME_STR.Reset(Nan::New<String>(TIMESTAMP_CLASS_NAME).ToLocalChecked());
-			// ObjectId field names
 			bson->OBJECT_ID_CLASS_NAME_STR.Reset(Nan::New<String>(OBJECT_ID_CLASS_NAME).ToLocalChecked());
 			bson->OBJECT_ID_ID_PROPERTY_NAME_STR.Reset(Nan::New<String>(OBJECT_ID_ID_PROPERTY_NAME).ToLocalChecked());
-			// Binary field names
 			bson->BINARY_CLASS_NAME_STR.Reset(Nan::New<String>(BINARY_CLASS_NAME).ToLocalChecked());
-			// Decimal128 field names
 			bson->DECIMAL128_CLASS_NAME_STR.Reset(Nan::New<String>(DECIMAL128_CLASS_NAME).ToLocalChecked());
-			// Double field names
+			bson->DECIMAL128_VALUE_PROPERTY_NAME_STR.Reset(Nan::New<String>(DECIMAL128_VALUE_PROPERTY_NAME).ToLocalChecked());
 			bson->DOUBLE_CLASS_NAME_STR.Reset(Nan::New<String>(DOUBLE_CLASS_NAME).ToLocalChecked());
-			// Int32 field names
+			bson->DOUBLE_VALUE_PROPERTY_NAME_STR.Reset(Nan::New<String>(DOUBLE_VALUE_PROPERTY_NAME).ToLocalChecked());
 			bson->INT32_CLASS_NAME_STR.Reset(Nan::New<String>(INT32_CLASS_NAME).ToLocalChecked());
-			// Symbol field names
+			bson->INT32_VALUE_PROPERTY_NAME_STR.Reset(Nan::New<String>(INT32_VALUE_PROPERTY_NAME).ToLocalChecked());
 			bson->SYMBOL_CLASS_NAME_STR.Reset(Nan::New<String>(SYMBOL_CLASS_NAME).ToLocalChecked());
-			// Symbol field names
 			bson->CODE_CLASS_NAME_STR.Reset(Nan::New<String>(CODE_CLASS_NAME).ToLocalChecked());
-			// DBRef field names
 			bson->DBREF_CLASS_NAME_STR.Reset(Nan::New<String>(DBREF_CLASS_NAME).ToLocalChecked());
-			// DBRef field names
 			bson->REGEXP_CLASS_NAME_STR.Reset(Nan::New<String>(REGEXP_CLASS_NAME).ToLocalChecked());
-			// MaxKey field names
 			bson->MAX_KEY_CLASS_NAME_STR.Reset(Nan::New<String>(MAX_KEY_CLASS_NAME).ToLocalChecked());
-			// MinKey field names
 			bson->MIN_KEY_CLASS_NAME_STR.Reset(Nan::New<String>(MIN_KEY_CLASS_NAME).ToLocalChecked());
+			bson->BINARY_POSITION_PROPERTY_NAME_STR.Reset(Nan::New<String>(BINARY_POSITION_PROPERTY_NAME).ToLocalChecked());
+			bson->BINARY_BUFFER_PROPERTY_NAME_STR.Reset(Nan::New<String>(BINARY_BUFFER_PROPERTY_NAME).ToLocalChecked());
+			bson->BINARY_SUBTYPE_PROPERTY_NAME_STR.Reset(Nan::New<String>(BINARY_SUBTYPE_PROPERTY_NAME).ToLocalChecked());
+			bson->SYMBOL_VALUE_PROPERTY_NAME_STR.Reset(Nan::New<String>(SYMBOL_VALUE_PROPERTY_NAME).ToLocalChecked());
+			bson->CODE_CODE_PROPERTY_NAME_STR.Reset(Nan::New<String>(CODE_CODE_PROPERTY_NAME).ToLocalChecked());
+			bson->CODE_SCOPE_PROPERTY_NAME_STR.Reset(Nan::New<String>(CODE_SCOPE_PROPERTY_NAME).ToLocalChecked());
+			bson->DBREF_NAMESPACE_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_NAMESPACE_PROPERTY_NAME).ToLocalChecked());
+			bson->DBREF_OID_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_OID_PROPERTY_NAME).ToLocalChecked());
+			bson->DBREF_DB_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_DB_PROPERTY_NAME).ToLocalChecked());
+			bson->REGEX_PATTERN_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_PATTERN_PROPERTY_NAME).ToLocalChecked());
+			bson->REGEX_OPTIONS_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_OPTIONS_PROPERTY_NAME).ToLocalChecked());
 
 			// Allocate a new Buffer
 			bson->buffer.Reset(Unmaybe(Nan::NewBuffer(sizeof(char) * maxBSONSize)));
