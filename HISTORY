@@ -1,3 +1,11 @@
+1.0.1 2016-12-06
+----------------
+- Reverse behavior for undefined to be serialized as NULL. MongoDB 3.4 does not allow for undefined comparisons.
+
+1.0.0 2016-12-06
+----------------
+- Introduced new BSON API and documentation.
+
 0.1.13 2015-10-05
 -----------------
 - Upgrade to nan 2.0.9 (Issue #27, https://github.com/guymguym)

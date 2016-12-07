@@ -528,7 +528,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	}
 	else if(value->IsUndefined() && !isArray && !ignoreUndefined)
 	{
-		this->CommitType(typeLocation, BSON_TYPE_UNDEFINED);
+		this->CommitType(typeLocation, BSON_TYPE_NULL);
 	}
 	else if(value->IsUndefined() && isArray && ignoreUndefined)
 	{
@@ -536,7 +536,7 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 	}
 	else if(value->IsUndefined() && isArray && !ignoreUndefined)
 	{
-		this->CommitType(typeLocation, BSON_TYPE_UNDEFINED);
+		this->CommitType(typeLocation, BSON_TYPE_NULL);
 	}
 }
 

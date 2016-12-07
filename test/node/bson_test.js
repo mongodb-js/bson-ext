@@ -386,8 +386,8 @@ exports['Should correctly serialize undefined array entries as undefined values'
   assertBuffersEqual(test, serialized_data, serialized_data2, 0);
   var doc1 = createBSON().deserialize(serialized_data);
   var doc2 = createBSON().deserialize(serialized_data2);
-  test.deepEqual(undefined, doc1.doc.notdefined);
-  test.deepEqual(undefined, doc2.doc.notdefined);
+  test.deepEqual(null, doc1.doc.notdefined);
+  test.deepEqual(null, doc2.doc.notdefined);
   test.done();
 }
 

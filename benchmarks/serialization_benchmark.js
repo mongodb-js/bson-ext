@@ -76,7 +76,7 @@ function generateRecord(recnum) {
 }
 
 var iterations = 100000;
-var iterations = 10000;
+// var iterations = 10000;
 // var iterations = 1;
 var doc = generateRecord(0)
 var buffer = bson.serialize(doc);
