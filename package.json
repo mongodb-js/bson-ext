@@ -6,7 +6,7 @@
     "bson",
     "parser"
   ],
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Christian Amor Kvalheim <christkv@gmail.com>",
   "contributors": [],
   "repository": {
