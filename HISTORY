@@ -1,3 +1,7 @@
+1.0.5 2016-01-20
+----------------
+- Better identify Map instances, avoid throwing on anything containing an entries field, #37.
+
 1.0.4 2016-01-11
 ----------------
 - #204 remove Buffer.from as it's partially broken in early 4.x.x. series of node releases.
