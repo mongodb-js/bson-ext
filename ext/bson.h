@@ -173,6 +173,7 @@ public:
   Nan::Persistent<String> DBREF_DB_PROPERTY_NAME_STR;
   Nan::Persistent<String> REGEX_PATTERN_PROPERTY_NAME_STR;
   Nan::Persistent<String> REGEX_OPTIONS_PROPERTY_NAME_STR;
+  Nan::Persistent<String> MAP_NAME_STR;
 
 private:
 	static NAN_METHOD(New);

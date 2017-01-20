@@ -89,6 +89,9 @@ static const char* CODE_SCOPE_PROPERTY_NAME = "scope";
 static const char* TO_BSON_PROPERTY_NAME = "toBSON";
 static const char* TO_OBJECT_PROPERTY_NAME = "toObject";
 
+// Equality Object for Map
+static const char* MAP_NAME = "[object Map]";
+
 void DataStream::WriteObjectId(const Local<Object>& object, const Local<String>& key)
 {
 	uint16_t buffer[12];
@@ -175,8 +178,9 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value
 	Local<Object> object = bson->GetSerializeObject(value);
 	Local<String> propertyName;
 	Local<Value> propertyValue;
+	Local<String> str = object->ToString();
 
-	if(!NanHas(object, "entries")) {
+	if(!str->StrictEquals(Nan::New(bson->MAP_NAME_STR)->ToString())) {
 		// Get the object property names
 	  Local<Array> propertyNames = object->GetPropertyNames();
 
@@ -206,7 +210,9 @@ template<typename T> void BSONSerializer<T>::SerializeDocument(const Local<Value
 	} else {
 		// Get the entries function
 		const Local<Value>& entries = NanGet(object, "entries");
-		if(!entries->IsFunction()) ThrowAllocatedStringException(64, "Map.entries is not a function");
+		if(!entries->IsFunction()) {
+			ThrowAllocatedStringException(64, "Map.entries is not a function");
+		}
 
 		// Get the iterator
 		Local<Object> iterator = Local<Function>::Cast(entries)->Call(object, 0, NULL)->ToObject();
@@ -1069,6 +1075,7 @@ BSON::~BSON()
 	DBREF_DB_PROPERTY_NAME_STR.Reset();
 	REGEX_PATTERN_PROPERTY_NAME_STR.Reset();
 	REGEX_OPTIONS_PROPERTY_NAME_STR.Reset();
+	MAP_NAME_STR.Reset();
 }
 
 void BSON::initializeStatics() {
@@ -1164,6 +1171,7 @@ NAN_METHOD(BSON::New) {
 			bson->DBREF_DB_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_DB_PROPERTY_NAME).ToLocalChecked());
 			bson->REGEX_PATTERN_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_PATTERN_PROPERTY_NAME).ToLocalChecked());
 			bson->REGEX_OPTIONS_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_OPTIONS_PROPERTY_NAME).ToLocalChecked());
+			bson->MAP_NAME_STR.Reset(Nan::New<String>(MAP_NAME).ToLocalChecked());
 
 			// Allocate a new Buffer
 			bson->buffer.Reset(Unmaybe(Nan::NewBuffer(sizeof(char) * maxBSONSize)));
