@@ -5,6 +5,10 @@ var createBSON = require('../utils');
  * @ignore
  */
 exports['should correctly exercise the map'] = function(test) {
+  if(typeof global.Map === 'undefined') {
+    return test.done();
+  }
+
   var m = new M([['a', 1], ['b', 2]]);
   test.ok(m.has('a'));
   test.ok(m.has('b'));
@@ -78,6 +82,10 @@ exports['should correctly exercise the map'] = function(test) {
  * @ignore
  */
 exports['should serialize a map'] = function(test) {
+  if(typeof global.Map === 'undefined') {
+    return test.done();
+  }
+
   // Serialize top level map only
   var m = new M([['a', 1], ['b', 2]]);
   var bson = createBSON();
@@ -109,6 +117,10 @@ exports['should serialize a map'] = function(test) {
  * @ignore
  */
 exports['should not crash due to object that looks like map'] = function(test) {
+  if(typeof global.Map === 'undefined') {
+    return test.done();
+  }
+
   // Serialize top level map only
   var m = { entries: "test" };
   var bson = createBSON();
