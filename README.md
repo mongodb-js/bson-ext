@@ -2,7 +2,7 @@
 
 BSON is short for Bin­ary JSON and is the bin­ary-en­coded seri­al­iz­a­tion of JSON-like doc­u­ments. You can learn more about it in [the specification](http://bsonspec.org).
 
-This library is a native (C++) parser for Node.js that takes advantage of low-level bindings to be faster and use less memory than the default (but browser-friendly) JavaScript parser (located at [mongodb/js-bson](https://github.com/mongodb/js-bson)).
+This module is a C++ addon for Node.js that implements the BSON parsing and serialization outside of the JavaScript environment in order to increase speed and memory efficiency for certain workloads. It uses the same types as the pure JavaScript implementation, which can be found at [mongodb/js-bson](https://github.com/mongodb/js-bson).
 
 ## Usage
 
