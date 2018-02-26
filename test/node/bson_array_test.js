@@ -1,21 +1,21 @@
-var BSON = require('../..');
 
 var testCase = require('nodeunit').testCase,
-  Buffer = require('buffer').Buffer,
   fs = require('fs'),
-  Code = require('../../lib/bson/code').Code,
-  Binary = require('../../lib/bson/binary').Binary,
-  Timestamp = require('../../lib/bson/timestamp').Timestamp,
-  Long = require('../../lib/bson/long').Long,
-  ObjectID = require('../../lib/bson/objectid').ObjectID,
-  Symbol = require('../../lib/bson/symbol').Symbol,
-  DBRef = require('../../lib/bson/db_ref').DBRef,
-  Double = require('../../lib/bson/double').Double,
-  MinKey = require('../../lib/bson/min_key').MinKey,
-  MaxKey = require('../../lib/bson/max_key').MaxKey,
-  utils = require('./tools/utils');
+  Buffer = require('buffer').Buffer,
+  utils = require('./tools/utils'),
+  createBSON = require('../utils');
 
-var createBSON = require('../utils');
+var BSON = require('../..'),
+  Code = BSON.Code,
+  Binary = BSON.Binary,
+  Timestamp = BSON.Timestamp,
+  Long = BSON.Long,
+  ObjectID = BSON.ObjectID,
+  Symbol = BSON.Symbol,
+  DBRef = BSON.DBRef,
+  Double = BSON.Double,
+  MinKey = BSON.MinKey,
+  MaxKey = BSON.MaxKey;
 
 var hexStringToBinary = function(string) {
   var numberofValues = string.length / 2;

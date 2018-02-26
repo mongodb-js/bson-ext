@@ -32,5 +32,8 @@ BSON.JS_INT_MIN = -0x20000000000000;  // Any integer down to -2^53 can be precis
   BSON[type] = jsBson[type];
 });
 
+// special case for deprecated names
+BSON.ObjectID = BSON.ObjectId;
+
 // Return the BSON
 module.exports = BSON;
