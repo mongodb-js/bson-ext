@@ -1,6 +1,7 @@
 'use strict';
 
-let Decimal128 = require('../../lib/bson/decimal128'),
+var BSON = require('../..'),
+  Decimal128 = BSON.Decimal128,
   expect = require('chai').expect,
   createBSON = require('../utils');
 
