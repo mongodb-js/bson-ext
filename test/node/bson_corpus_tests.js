@@ -1,8 +1,9 @@
 var BSON = require('../..'),
   Decimal128 = BSON.Decimal128,
   Long = BSON.Long,
-  deserialize = require('../../extended-json').deserialize,
-  serialize = require('../../extended-json').serialize,
+  EJSON = require('mongodb-extjson'),
+  deserialize = EJSON.parse,
+  serialize = EJSON.stringify,
   f = require('util').format,
   assert = require('assert'),
   fs = require('fs');
