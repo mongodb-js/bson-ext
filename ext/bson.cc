@@ -33,6 +33,7 @@
 	#include <alloca.h>
 #endif
 
+#include "utf8decoder.h"
 #include "bson.h"
 
 void die(const char *message) {
@@ -43,6 +44,16 @@ void die(const char *message) {
 	}
 
 	exit(1);
+}
+
+bool ValidateEncoding(const uint8_t* bytes, size_t length) {
+  Utf8DfaDecoder::State state = Utf8DfaDecoder::State::kAccept;
+  uint32_t throw_away = 0;
+  for (size_t i = 0; i < length && state != Utf8DfaDecoder::State::kReject; i++) {
+    Utf8DfaDecoder::Decode(bytes[i], &state, &throw_away);
+  }
+
+  return state == Utf8DfaDecoder::State::kAccept;
 }
 
 //===========================================================================
@@ -640,7 +651,11 @@ Local<String> BSONDeserializer::ReadString() {
 		ThrowAllocatedStringException(64, "Illegal bson string terminator found");
 	}
 
-	return Unmaybe(Nan::New<String>(start, length-1));
+	if (!ValidateEncoding(reinterpret_cast<const uint8_t*>(start), length - 1)) {
+		ThrowAllocatedStringException(64, "Invalid UTF8 string found");
+	}
+
+	return Unmaybe(Nan::New<String>(start, length - 1));
 }
 
 Local<Object> BSONDeserializer::ReadObjectId() {
