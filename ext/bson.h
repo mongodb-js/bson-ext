@@ -96,6 +96,7 @@ enum BsonType
 	BSON_TYPE_DATE			     = 9,
 	BSON_TYPE_NULL			     = 10,
 	BSON_TYPE_REGEXP		     = 11,
+	BSON_TYPE_DBPOINTER      = 12,
 	BSON_TYPE_CODE			     = 13,
 	BSON_TYPE_SYMBOL		     = 14,
 	BSON_TYPE_CODE_W_SCOPE	 = 15,
@@ -171,6 +172,7 @@ public:
   Nan::Persistent<String> DBREF_NAMESPACE_PROPERTY_NAME_STR;
   Nan::Persistent<String> DBREF_OID_PROPERTY_NAME_STR;
   Nan::Persistent<String> DBREF_DB_PROPERTY_NAME_STR;
+	Nan::Persistent<String> DBREF_FIELDS_PROPERTY_NAME_STR;
   Nan::Persistent<String> REGEX_PATTERN_PROPERTY_NAME_STR;
   Nan::Persistent<String> REGEX_OPTIONS_PROPERTY_NAME_STR;
   Nan::Persistent<String> MAP_NAME_STR;

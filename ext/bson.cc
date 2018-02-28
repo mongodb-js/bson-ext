@@ -89,8 +89,9 @@ static const char* INT32_VALUE_PROPERTY_NAME = "value";
 static const char* DBREF_REF_PROPERTY_NAME = "$ref";
 static const char* DBREF_ID_REF_PROPERTY_NAME = "$id";
 static const char* DBREF_DB_REF_PROPERTY_NAME = "$db";
-static const char* DBREF_NAMESPACE_PROPERTY_NAME = "namespace";
+static const char* DBREF_NAMESPACE_PROPERTY_NAME = "collection";
 static const char* DBREF_DB_PROPERTY_NAME = "db";
+static const char* DBREF_FIELDS_PROPERTY_NAME = "fields";
 static const char* DBREF_OID_PROPERTY_NAME = "oid";
 static const char* REGEX_PATTERN_PROPERTY_NAME = "pattern";
 static const char* REGEX_OPTIONS_PROPERTY_NAME = "options";
@@ -458,6 +459,37 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 					SerializeValue(dbType, refDbValue, false);
 				}
 
+				// serialize any other values
+				const Local<Value>& refFieldsValue = NanGet(object, Nan::New(bson->DBREF_FIELDS_PROPERTY_NAME_STR));
+				if (!refFieldsValue->IsUndefined()) {
+					Local<Object> fieldsObject = refFieldsValue->ToObject();
+					Local<Array> propertyNames = fieldsObject->GetPropertyNames();
+
+					// Length of the property
+					int propertyLength = propertyNames->Length();
+					for (int i = 0;  i < propertyLength; ++i)
+					{
+						Local<String> propertyName = NanGet(propertyNames, i)->ToString();
+						fprintf(stderr, "serializing property: %s\n", *Nan::Utf8String(propertyName));
+						Local<Value> propertyValue = NanGet(fieldsObject, propertyName);
+
+						// We are not serializing the function
+						if (!serializeFunctions && propertyValue->IsFunction()) {
+							continue;
+						}
+
+						// We are ignoring undefined values
+						if (ignoreUndefined && propertyValue->IsUndefined()) {
+							continue;
+						}
+
+						// Serialize the value
+						void* typeLocation = this->BeginWriteType();
+						this->WriteString(propertyName);
+						SerializeValue(typeLocation, propertyValue, false);
+					}
+				}
+
 				this->WriteByte(0);
 				this->CommitSize(dbRefSize);
 			}
@@ -735,8 +767,31 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 	// From JavaScript:
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
 	if(NanHas(returnObject, DBREF_ID_REF_PROPERTY_NAME)) {
-		Local<Value> argv[] = { NanGet(returnObject, DBREF_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME), NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME) };
-		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 3, argv);
+		Local<Object> fieldsObject = Unmaybe(Nan::New<Object>());
+		Local<Array> propertyNames = returnObject->GetPropertyNames();
+		int propertyLength = propertyNames->Length();
+		for (int i = 0;  i < propertyLength; ++i) {
+			propertyName = NanGet(propertyNames, i)->ToString();
+
+			if (
+				propertyName->StrictEquals(Nan::New(DBREF_REF_PROPERTY_NAME).ToLocalChecked()) ||
+				propertyName->StrictEquals(Nan::New(DBREF_ID_REF_PROPERTY_NAME).ToLocalChecked()) ||
+				propertyName->StrictEquals(Nan::New(DBREF_DB_REF_PROPERTY_NAME).ToLocalChecked())
+			) {
+				continue;
+			}
+
+			fieldsObject->Set(propertyName, NanGet(returnObject, propertyName));
+		}
+
+		Local<Value> argv[] = {
+			NanGet(returnObject, DBREF_REF_PROPERTY_NAME),
+			NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME),
+			NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME),
+			fieldsObject
+		};
+
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 4, argv);
 		return obj.ToLocalChecked();
 	} else {
 		return returnObject;
@@ -1021,6 +1076,17 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 		return obj.ToLocalChecked();
 	}
 
+	case BSON_TYPE_DBPOINTER: {
+		// dbpointer is deprecated, upgrade to dbref
+		const Local<String>& ns = ReadString();
+		Local<Value> oidArgs[] = { ReadObjectId() };
+		Nan::MaybeLocal<Object> oid = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, oidArgs);
+
+		Local<Value> argv[] = { ns, oid.ToLocalChecked() };
+		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 2, argv);
+		return obj.ToLocalChecked();
+	}
+
 	default:
 		ThrowAllocatedStringException(64, "Unhandled BSON Type: %d", type);
 	}
@@ -1085,6 +1151,7 @@ BSON::~BSON()
 	DBREF_NAMESPACE_PROPERTY_NAME_STR.Reset();
 	DBREF_OID_PROPERTY_NAME_STR.Reset();
 	DBREF_DB_PROPERTY_NAME_STR.Reset();
+	DBREF_FIELDS_PROPERTY_NAME_STR.Reset();
 	REGEX_PATTERN_PROPERTY_NAME_STR.Reset();
 	REGEX_OPTIONS_PROPERTY_NAME_STR.Reset();
 	MAP_NAME_STR.Reset();
@@ -1181,6 +1248,7 @@ NAN_METHOD(BSON::New) {
 			bson->DBREF_NAMESPACE_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_NAMESPACE_PROPERTY_NAME).ToLocalChecked());
 			bson->DBREF_OID_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_OID_PROPERTY_NAME).ToLocalChecked());
 			bson->DBREF_DB_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_DB_PROPERTY_NAME).ToLocalChecked());
+			bson->DBREF_FIELDS_PROPERTY_NAME_STR.Reset(Nan::New<String>(DBREF_FIELDS_PROPERTY_NAME).ToLocalChecked());
 			bson->REGEX_PATTERN_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_PATTERN_PROPERTY_NAME).ToLocalChecked());
 			bson->REGEX_OPTIONS_PROPERTY_NAME_STR.Reset(Nan::New<String>(REGEX_OPTIONS_PROPERTY_NAME).ToLocalChecked());
 			bson->MAP_NAME_STR.Reset(Nan::New<String>(MAP_NAME).ToLocalChecked());
