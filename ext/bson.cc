@@ -1007,12 +1007,9 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 	case BSON_TYPE_OBJECT:
 		return DeserializeDocument(raw);
 
-	case BSON_TYPE_SYMBOL: {
-			const Local<String>& string = ReadString();
-			Local<Value> argv[] = { string };
-			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->symbolConstructor), 1, argv);
-			return obj.ToLocalChecked();
-		}
+	case BSON_TYPE_SYMBOL:
+		// symbol is deprecated, upgrade to string
+		return ReadString();
 
 	case BSON_TYPE_MIN_KEY: {
 		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->minKeyConstructor));
