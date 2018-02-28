@@ -470,7 +470,6 @@ template<typename T> void BSONSerializer<T>::SerializeValue(void* typeLocation, 
 					for (int i = 0;  i < propertyLength; ++i)
 					{
 						Local<String> propertyName = NanGet(propertyNames, i)->ToString();
-						fprintf(stderr, "serializing property: %s\n", *Nan::Utf8String(propertyName));
 						Local<Value> propertyValue = NanGet(fieldsObject, propertyName);
 
 						// We are not serializing the function
@@ -766,17 +765,37 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 
 	// From JavaScript:
 	// if(object['$id'] != null) object = new DBRef(object['$ref'], object['$id'], object['$db']);
-	if(NanHas(returnObject, DBREF_ID_REF_PROPERTY_NAME)) {
+	// Determine if we need to return a DBRef or not
+	Local<Value> dbRefRefValue = NanGet(returnObject, DBREF_REF_PROPERTY_NAME);
+	Local<Value> dbRefIdValue = NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME);
+	Local<Value> dbRefDbValue = NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME);
+	if (!dbRefRefValue->IsUndefined() && !dbRefIdValue->IsUndefined()) {
 		Local<Object> fieldsObject = Unmaybe(Nan::New<Object>());
 		Local<Array> propertyNames = returnObject->GetPropertyNames();
 		int propertyLength = propertyNames->Length();
 		for (int i = 0;  i < propertyLength; ++i) {
 			propertyName = NanGet(propertyNames, i)->ToString();
 
+			// First check if we have an invalid escaped key
+			const char *check = *Nan::Utf8String(propertyName);
+
 			if (
-				propertyName->StrictEquals(Nan::New(DBREF_REF_PROPERTY_NAME).ToLocalChecked()) ||
-				propertyName->StrictEquals(Nan::New(DBREF_ID_REF_PROPERTY_NAME).ToLocalChecked()) ||
-				propertyName->StrictEquals(Nan::New(DBREF_DB_REF_PROPERTY_NAME).ToLocalChecked())
+				check[0] == '$' &&
+				(
+					strcmp(check, DBREF_REF_PROPERTY_NAME) != 0 &&
+					strcmp(check, DBREF_ID_REF_PROPERTY_NAME) != 0 &&
+					strcmp(check, DBREF_DB_REF_PROPERTY_NAME) != 0
+				)
+			) {
+				// this is not a proper DBRef, we're safe to just return the returnObject
+				return returnObject;
+			}
+
+			// Now build up the `fields` object
+			if (
+				strcmp(check, DBREF_REF_PROPERTY_NAME) == 0 ||
+				strcmp(check, DBREF_ID_REF_PROPERTY_NAME) == 0 ||
+				strcmp(check, DBREF_DB_REF_PROPERTY_NAME) == 0
 			) {
 				continue;
 			}
@@ -784,18 +803,12 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 			fieldsObject->Set(propertyName, NanGet(returnObject, propertyName));
 		}
 
-		Local<Value> argv[] = {
-			NanGet(returnObject, DBREF_REF_PROPERTY_NAME),
-			NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME),
-			NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME),
-			fieldsObject
-		};
-
+		Local<Value> argv[] = { dbRefRefValue, dbRefIdValue, dbRefDbValue, fieldsObject };
 		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 4, argv);
 		return obj.ToLocalChecked();
-	} else {
-		return returnObject;
 	}
+
+	return returnObject;
 }
 
 Local<Value> BSONDeserializer::DeserializeArray(bool raw) {
