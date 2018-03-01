@@ -54,6 +54,7 @@ inline Local<T> Unmaybe(Nan::MaybeLocal<T> h) {
     assert(!h.IsEmpty());
     return h.ToLocalChecked();
 }
+
 template <class T>
 inline T Unmaybe(Nan::Maybe<T> h) {
     assert(h.IsJust());

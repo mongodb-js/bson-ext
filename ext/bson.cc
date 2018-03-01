@@ -690,6 +690,10 @@ Local<String> BSONDeserializer::ReadString() {
 }
 
 Local<Object> BSONDeserializer::ReadObjectId() {
+	if((pEnd - p) < 12) {
+		ThrowAllocatedStringException(64, "Illegal BSON found, truncated ObjectId");
+	}
+
 	// Copy the data into a buffer
 	Local<Object> buffer = Unmaybe(Nan::CopyBuffer(p, 12));
 	// Move pointer
@@ -777,14 +781,14 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 			propertyName = NanGet(propertyNames, i)->ToString();
 
 			// First check if we have an invalid escaped key
-			const char *check = *Nan::Utf8String(propertyName);
+			std::string check(*Nan::Utf8String(propertyName));
 
 			if (
 				check[0] == '$' &&
 				(
-					strcmp(check, DBREF_REF_PROPERTY_NAME) != 0 &&
-					strcmp(check, DBREF_ID_REF_PROPERTY_NAME) != 0 &&
-					strcmp(check, DBREF_DB_REF_PROPERTY_NAME) != 0
+					strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) != 0 &&
+					strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) != 0 &&
+					strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) != 0
 				)
 			) {
 				// this is not a proper DBRef, we're safe to just return the returnObject
@@ -793,9 +797,9 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
 
 			// Now build up the `fields` object
 			if (
-				strcmp(check, DBREF_REF_PROPERTY_NAME) == 0 ||
-				strcmp(check, DBREF_ID_REF_PROPERTY_NAME) == 0 ||
-				strcmp(check, DBREF_DB_REF_PROPERTY_NAME) == 0
+				strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) == 0 ||
+				strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) == 0 ||
+				strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) == 0
 			) {
 				continue;
 			}
@@ -958,10 +962,6 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 		}
 
 	case BSON_TYPE_OID: {
-			if((pEnd - p) < 12) {
-				ThrowAllocatedStringException(64, "Illegal BSON found, truncated ObjectId");
-			}
-
 			Local<Value> argv[] = { ReadObjectId() };
 			Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, argv);
 			return obj.ToLocalChecked();
@@ -1091,13 +1091,13 @@ Local<Value> BSONDeserializer::DeserializeValue(BsonType type, bool raw)
 
 	case BSON_TYPE_DBPOINTER: {
 		// dbpointer is deprecated, upgrade to dbref
-		const Local<String>& ns = ReadString();
+		Local<String> ns = ReadString();
 		Local<Value> oidArgs[] = { ReadObjectId() };
-		Nan::MaybeLocal<Object> oid = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, oidArgs);
+		Local<Object> oid = Nan::NewInstance(Nan::New(bson->objectIDConstructor), 1, oidArgs).ToLocalChecked();
 
-		Local<Value> argv[] = { ns, oid.ToLocalChecked() };
-		Nan::MaybeLocal<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 2, argv);
-		return obj.ToLocalChecked();
+		Local<Value> argv[] = { ns, oid };
+		Local<Object> obj = Nan::NewInstance(Nan::New(bson->dbrefConstructor), 2, argv).ToLocalChecked();
+		return obj;
 	}
 
 	default:
