@@ -1,3 +1,22 @@
+<a name="2.0.0"></a>
+# 2.0.0 (2018-03-02)
+
+
+### Bug Fixes
+
+* **db-ref:** correctly avoid parsing DBRef for invalid shapes ([fb58633](https://github.com/christkv/bson-ext/commit/fb58633))
+* **db-ref:** support additional fields on DBRef type ([ff13e82](https://github.com/christkv/bson-ext/commit/ff13e82))
+* **object-id:** move length assertion into ReadObjectId ([f3e7812](https://github.com/christkv/bson-ext/commit/f3e7812))
+* **symbol:** upgrade deprecated symbol type to string ([5189f85](https://github.com/christkv/bson-ext/commit/5189f85))
+
+
+### Features
+
+* **mocha:** switch to using mocha for testing the module ([4d4a3a7](https://github.com/christkv/bson-ext/commit/4d4a3a7))
+* **utf8-parsing:** add utf8 string validation ([6f01469](https://github.com/christkv/bson-ext/commit/6f01469))
+
+
+
 1.0.5 2016-01-20
 ----------------
 - Better identify Map instances, avoid throwing on anything containing an entries field, #37.
