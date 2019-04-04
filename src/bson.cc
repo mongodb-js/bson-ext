@@ -102,6 +102,8 @@ static const char *CODE_SCOPE_PROPERTY_NAME = "scope";
 static const char *TO_BSON_PROPERTY_NAME = "toBSON";
 static const char *TO_OBJECT_PROPERTY_NAME = "toObject";
 
+static const char *CLUSTER_TIME_PROPERTY_NAME = "$clusterTime";
+
 // Equality Object for Map
 static const char *MAP_NAME = "[object Map]";
 
@@ -144,6 +146,16 @@ void DataStream::CheckKey(const Local<String> &keyName) {
   char *keyStringBuffer = (char *)alloca(keyLength + 1);
   // Write the key to the allocated buffer
   keyName->WriteUtf8(keyStringBuffer);
+
+  if (
+    strcmp(keyStringBuffer, DBREF_REF_PROPERTY_NAME) == 0 ||
+    strcmp(keyStringBuffer, DBREF_ID_REF_PROPERTY_NAME) == 0 ||
+    strcmp(keyStringBuffer, DBREF_DB_REF_PROPERTY_NAME) == 0 ||
+    strcmp(keyStringBuffer, CLUSTER_TIME_PROPERTY_NAME) == 0
+  ) {
+    return;
+  }
+
   // Check for the zero terminator
   char *terminator = strchr(keyStringBuffer, 0x00);
 

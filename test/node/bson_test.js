@@ -2308,4 +2308,34 @@ describe('BSON', function() {
     expect(false).to.equal(id.equals(undefined));
     done();
   });
+
+  /**
+   * @ignore
+   */
+  it('Should error when attempting to serialize a $ key with checkKeys: true', function() {
+    // Create a simple object
+    var doc = { a: 1, '$foobar': 12 };
+    // Create a BSON parser instance
+    var bson = createBSON();
+
+    // Serializing a key that starts with $ should throw
+    expect(() => bson.serialize(doc, { checkKeys: true })).to.throw();
+  });
+
+  /**
+   * @ignore
+   */
+  it('Should not error when attempting to serialize the keys $db, $ref, $id, and $clusterTime', function() {
+    const bson = createBSON();
+
+    [
+      '$db',
+      '$ref',
+      '$id',
+      '$clusterTime'
+    ].forEach(key => {
+      const doc = { a: 1, [key]: 12 };
+      expect(() => bson.serialize(doc, { checkKeys: true })).to.not.throw()
+    });
+  });
 });
