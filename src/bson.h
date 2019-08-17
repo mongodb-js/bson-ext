@@ -44,6 +44,10 @@ const int preLoadedIndex = 10000;
 #define NanStr(x) (Unmaybe(Nan::New<String>(x)))
 #define NanHas(obj, key) (Nan::Has(obj, NanKey(key)).FromJust())
 #define NanGet(obj, key) (Unmaybe(Nan::Get(obj, NanKey(key))))
+#define NanEquals(a, b) (Unmaybe(Nan::Equals(a, b)))
+#define NanToString(obj) (Unmaybe(obj->ToString(Nan::GetCurrentContext())))
+#define NanToObject(obj) (Unmaybe(obj->ToObject(Nan::GetCurrentContext())))
+#define NanUtf8Length(obj) (obj->Utf8Length(v8::Isolate::GetCurrent()))
 // Unmaybe overloading to conviniently convert from Local/MaybeLocal/Maybe to
 // Local/plain value
 template <class T> inline Local<T> Unmaybe(Local<T> h) { return h; }
@@ -64,10 +68,20 @@ inline Local<String> NanKey(const Local<String> &s) { return s; }
 inline Local<String> NanKey(const Nan::Persistent<String> &s) {
   return NanStr(s);
 }
+template <class T, class U> inline T NanTo(Local<U> h) { 
+  return Nan::To<T>(h).ToChecked();
+}
 
 // Extracts a C string from a V8 Utf8Value.
 inline const char *ToCString(const v8::String::Utf8Value &value) {
   return *value ? *value : "<string conversion failed>";
+}
+inline int NanWriteUtf8(const v8::Local<v8::String> str, char *buffer) {
+  return str->WriteUtf8(v8::Isolate::GetCurrent(), buffer);
+}
+inline int NanWrite(const v8::Local<v8::String> str, uint16_t *buffer,
+                    int start = 0, int length = -1) {
+  return str->Write(v8::Isolate::GetCurrent(), buffer, start, length);
 }
 
 //===========================================================================
@@ -215,13 +229,13 @@ public:
     count += sprintf(buffer, "%u", name) + 1;
   }
   void WriteLengthPrefixedString(const Local<String> &value) {
-    count += value->Utf8Length() + 5;
+    count += NanUtf8Length(value) + 5;
   }
   void WriteObjectId(const Local<Object> &object, const Local<String> &key) {
     count += 12;
   }
   void WriteString(const Local<String> &value) {
-    count += value->Utf8Length() + 1;
+    count += NanUtf8Length(value) + 1;
   } // This returns the number of bytes exclusive of the NULL terminator
   void WriteData(const char *data, size_t length) { count += length; }
 
@@ -272,7 +286,7 @@ public:
   void WriteByte(const Local<Object> &object, const Local<String> &key) {
     if ((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE)
       throw "document is larger than max bson document size of 16MB";
-    *p++ = object->Get(key)->Int32Value();
+    *p++ = NanTo<int32_t>(NanGet(object, key));
   }
 
 #if USE_MISALIGNED_MEMORY_ACCESS
@@ -341,33 +355,33 @@ public:
   }
 #endif
   void WriteBool(const Local<Value> &value) {
-    WriteByte(value->BooleanValue() ? 1 : 0);
+    WriteByte(NanTo<bool>(value) ? 1 : 0);
   }
 
   void WriteInt32(const Local<Value> &value) {
-    WriteInt32(value->Int32Value());
+    WriteInt32(NanTo<int32_t>(value));
   }
 
   void WriteInt32(const Local<Object> &object, const Local<String> &key) {
-    WriteInt32(object->Get(key));
+    WriteInt32(NanGet(object, key));
   }
 
   void WriteInt64(const Local<Value> &value) {
-    WriteInt64(value->IntegerValue());
+    WriteInt64(NanTo<int64_t>(value));
   }
 
   void WriteDouble(const Local<Value> &value) {
-    WriteDouble(value->NumberValue());
+    WriteDouble(NanTo<double>(value));
   }
 
   void WriteDouble(const Local<Object> &object, const Local<String> &key) {
-    WriteDouble(object->Get(key));
+    WriteDouble(NanGet(object, key));
   }
 
   void WriteUInt32String(uint32_t name) { p += sprintf(p, "%u", name) + 1; }
 
   void WriteLengthPrefixedString(const Local<String> &value) {
-    int32_t length = value->Utf8Length() + 1;
+    int32_t length = NanUtf8Length(value) + 1;
     if ((size_t)((p + length) - destinationBuffer) > MAX_BSON_SIZE)
       throw "document is larger than max bson document size of 16MB";
     WriteInt32(length);
@@ -379,7 +393,7 @@ public:
   void WriteString(const Local<String> &value) {
     if ((size_t)(p - destinationBuffer) > MAX_BSON_SIZE)
       throw "document is larger than max bson document size of 16MB";
-    p += value->WriteUtf8(p);
+    p += value->WriteUtf8(v8::Isolate::GetCurrent(), p);
   } // This returns the number of bytes inclusive of the NULL terminator.
 
   void WriteData(const char *data, size_t length) {
