@@ -68,7 +68,7 @@ inline Local<String> NanKey(const Local<String> &s) { return s; }
 inline Local<String> NanKey(const Nan::Persistent<String> &s) {
   return NanStr(s);
 }
-template <class T, class U> inline T NanTo(Local<U> h) { 
+template <class T, class U> inline T NanTo(Local<U> h) {
   return Nan::To<T>(h).ToChecked();
 }
 

@@ -147,12 +147,10 @@ void DataStream::CheckKey(const Local<String> &keyName) {
   // Write the key to the allocated buffer
   NanWriteUtf8(keyName, keyStringBuffer);
 
-  if (
-    strcmp(keyStringBuffer, DBREF_REF_PROPERTY_NAME) == 0 ||
-    strcmp(keyStringBuffer, DBREF_ID_REF_PROPERTY_NAME) == 0 ||
-    strcmp(keyStringBuffer, DBREF_DB_REF_PROPERTY_NAME) == 0 ||
-    strcmp(keyStringBuffer, CLUSTER_TIME_PROPERTY_NAME) == 0
-  ) {
+  if (strcmp(keyStringBuffer, DBREF_REF_PROPERTY_NAME) == 0 ||
+      strcmp(keyStringBuffer, DBREF_ID_REF_PROPERTY_NAME) == 0 ||
+      strcmp(keyStringBuffer, DBREF_DB_REF_PROPERTY_NAME) == 0 ||
+      strcmp(keyStringBuffer, CLUSTER_TIME_PROPERTY_NAME) == 0) {
     return;
   }
 
@@ -246,8 +244,8 @@ void BSONSerializer<T>::SerializeDocument(const Local<Value> &value) {
     }
 
     // Get the iterator
-    Local<Object> iterator =
-        NanToObject(Unmaybe(Nan::Call(Local<Function>::Cast(entries), object, 0, NULL)));
+    Local<Object> iterator = NanToObject(
+        Unmaybe(Nan::Call(Local<Function>::Cast(entries), object, 0, NULL)));
 
     // Check if we have the next value
     const Local<Value> &next = NanGet(iterator, "next");
@@ -257,8 +255,8 @@ void BSONSerializer<T>::SerializeDocument(const Local<Value> &value) {
     // Iterate until we are done
     while (true) {
       // Get the entry
-      Local<Object> entry =
-          NanToObject(Unmaybe(Nan::Call(Local<Function>::Cast(next), iterator, 0, NULL)));
+      Local<Object> entry = NanToObject(
+          Unmaybe(Nan::Call(Local<Function>::Cast(next), iterator, 0, NULL)));
 
       // Check if we are done
       if (NanTo<bool>(NanGet(entry, "done"))) {
@@ -365,24 +363,29 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
         this->CommitType(typeLocation, BSON_TYPE_LONG);
         this->WriteInt32(object, Nan::New(bson->LONG_LOW_PROPERTY_NAME_STR));
         this->WriteInt32(object, Nan::New(bson->LONG_HIGH_PROPERTY_NAME_STR));
-      } else if (NanEquals(Nan::New(bson->TIMESTAMP_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->TIMESTAMP_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_TIMESTAMP);
         this->WriteInt32(object, Nan::New(bson->LONG_LOW_PROPERTY_NAME_STR));
         this->WriteInt32(object, Nan::New(bson->LONG_HIGH_PROPERTY_NAME_STR));
-      } else if (NanEquals(Nan::New(bson->OBJECT_ID_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->OBJECT_ID_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_OID);
         this->WriteObjectId(object,
                             Nan::New(bson->OBJECT_ID_ID_PROPERTY_NAME_STR));
-      } else if (NanEquals(Nan::New(bson->BINARY_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->BINARY_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_BINARY);
 
-        uint32_t length =
-            NanTo<uint32_t>(NanGet(object, Nan::New(bson->BINARY_POSITION_PROPERTY_NAME_STR)));
-        Local<Object> bufferObj =
-            NanToObject(NanGet(object, Nan::New(bson->BINARY_BUFFER_PROPERTY_NAME_STR)));
+        uint32_t length = NanTo<uint32_t>(
+            NanGet(object, Nan::New(bson->BINARY_POSITION_PROPERTY_NAME_STR)));
+        Local<Object> bufferObj = NanToObject(
+            NanGet(object, Nan::New(bson->BINARY_BUFFER_PROPERTY_NAME_STR)));
 
         // Add the deprecated 02 type 4 bytes of size to total
-        if (NanTo<int32_t>(NanGet(object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))) == 0x02) {
+        if (NanTo<int32_t>(NanGet(
+                object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))) ==
+            0x02) {
           length = length + 4;
         }
 
@@ -392,37 +395,44 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
             Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR)); // write subtype
 
         // If type 0x02 write the array length aswell
-        if (NanTo<int32_t>(NanGet(object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))) == 0x02) {
+        if (NanTo<int32_t>(NanGet(
+                object, Nan::New(bson->BINARY_SUBTYPE_PROPERTY_NAME_STR))) ==
+            0x02) {
           length = length - 4;
           this->WriteInt32(length);
         }
 
         // Write the actual data
         this->WriteData(node::Buffer::Data(bufferObj), length);
-      } else if (NanEquals(Nan::New(bson->DECIMAL128_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->DECIMAL128_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_DECIMAL128);
         // Get the bytes length
         uint32_t length = (uint32_t)node::Buffer::Length(
             NanGet(object, Nan::New(bson->DECIMAL128_VALUE_PROPERTY_NAME_STR)));
         // Get the bytes buffer object
-        Local<Object> bufferObj =
-            NanToObject(NanGet(object, Nan::New(bson->DECIMAL128_VALUE_PROPERTY_NAME_STR)));
+        Local<Object> bufferObj = NanToObject(
+            NanGet(object, Nan::New(bson->DECIMAL128_VALUE_PROPERTY_NAME_STR)));
         // Write the actual decimal128 bytes
         this->WriteData(node::Buffer::Data(bufferObj), length);
-      } else if (NanEquals(Nan::New(bson->DOUBLE_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->DOUBLE_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_NUMBER);
         this->WriteDouble(object,
                           Nan::New(bson->DOUBLE_VALUE_PROPERTY_NAME_STR));
-      } else if (NanEquals(Nan::New(bson->INT32_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->INT32_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_INT);
         this->WriteInt32(object, Nan::New(bson->INT32_VALUE_PROPERTY_NAME_STR));
-      } else if (NanEquals(Nan::New(bson->SYMBOL_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->SYMBOL_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_SYMBOL);
-        this->WriteLengthPrefixedString(
-            NanToString(NanGet(object, Nan::New(bson->SYMBOL_VALUE_PROPERTY_NAME_STR))));
-      } else if (NanEquals(Nan::New(bson->CODE_CLASS_NAME_STR), constructorString)) {
-        const Local<String> &function =
-            NanToString(NanGet(object, Nan::New(bson->CODE_CODE_PROPERTY_NAME_STR)));
+        this->WriteLengthPrefixedString(NanToString(
+            NanGet(object, Nan::New(bson->SYMBOL_VALUE_PROPERTY_NAME_STR))));
+      } else if (NanEquals(Nan::New(bson->CODE_CLASS_NAME_STR),
+                           constructorString)) {
+        const Local<String> &function = NanToString(
+            NanGet(object, Nan::New(bson->CODE_CODE_PROPERTY_NAME_STR)));
         // Does the code object have a defined scope
         bool hasScope =
             NanHas(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR)) &&
@@ -432,8 +442,8 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
                  ->IsNull();
 
         if (hasScope) {
-          const Local<Object> &scope =
-              NanToObject(NanGet(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR)));
+          const Local<Object> &scope = NanToObject(
+              NanGet(object, Nan::New(bson->CODE_SCOPE_PROPERTY_NAME_STR)));
           this->CommitType(typeLocation, BSON_TYPE_CODE_W_SCOPE);
           void *codeWidthScopeSize = this->BeginWriteSize();
           this->WriteLengthPrefixedString(NanToString(function));
@@ -443,7 +453,8 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
           this->CommitType(typeLocation, BSON_TYPE_CODE);
           this->WriteLengthPrefixedString(NanToString(function));
         }
-      } else if (NanEquals(Nan::New(bson->DBREF_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->DBREF_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_OBJECT);
 
         void *dbRefSize = this->BeginWriteSize();
@@ -474,7 +485,8 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
             NanGet(object, Nan::New(bson->DBREF_FIELDS_PROPERTY_NAME_STR));
         if (!refFieldsValue->IsUndefined()) {
           Local<Object> fieldsObject = NanToObject(refFieldsValue);
-          Local<Array> propertyNames = Unmaybe(Nan::GetPropertyNames(fieldsObject));
+          Local<Array> propertyNames =
+              Unmaybe(Nan::GetPropertyNames(fieldsObject));
 
           // Length of the property
           int propertyLength = propertyNames->Length();
@@ -501,25 +513,28 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
 
         this->WriteByte(0);
         this->CommitSize(dbRefSize);
-      } else if (NanEquals(Nan::New(bson->REGEXP_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->REGEXP_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_REGEXP);
         // Get the pattern string
-        Local<String> pattern =
-            NanToString(NanGet(object, Nan::New(bson->REGEX_PATTERN_PROPERTY_NAME_STR)));
+        Local<String> pattern = NanToString(
+            NanGet(object, Nan::New(bson->REGEX_PATTERN_PROPERTY_NAME_STR)));
         // Validate if the pattern is valid
         this->CheckForIllegalString(pattern);
         // Write the 0 terminated string
         this->WriteString(pattern);
         // Get the options string
-        Local<String> options =
-            NanToString(NanGet(object, Nan::New(bson->REGEX_OPTIONS_PROPERTY_NAME_STR)));
+        Local<String> options = NanToString(
+            NanGet(object, Nan::New(bson->REGEX_OPTIONS_PROPERTY_NAME_STR)));
         // Validate if the options is valid
         this->CheckForIllegalString(options);
         // Write the 0 terminated string
         this->WriteString(options);
-      } else if (NanEquals(Nan::New(bson->MIN_KEY_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->MIN_KEY_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_MIN_KEY);
-      } else if (NanEquals(Nan::New(bson->MAX_KEY_CLASS_NAME_STR), constructorString)) {
+      } else if (NanEquals(Nan::New(bson->MAX_KEY_CLASS_NAME_STR),
+                           constructorString)) {
         this->CommitType(typeLocation, BSON_TYPE_MAX_KEY);
       }
     } else if (value->IsFunction()) {
@@ -564,7 +579,8 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
         const Local<Value> &toBSON = NanGet(object, "toBSON");
         if (!toBSON->IsFunction())
           ThrowAllocatedStringException(64, "toBSON is not a function");
-        value = Unmaybe(Nan::Call(Local<Function>::Cast(toBSON), object, 0, NULL));
+        value =
+            Unmaybe(Nan::Call(Local<Function>::Cast(toBSON), object, 0, NULL));
         return SerializeValue(typeLocation, value, false);
       }
 
@@ -1461,8 +1477,7 @@ NAN_METHOD(BSON::BSONDeserialize) {
     // Check if we have the promoteLongs variable
     if (NanHas(options, "promoteBuffers")) {
       if (NanGet(options, "promoteBuffers")->IsBoolean()) {
-        promoteBuffers =
-            NanTo<bool>(NanGet(options, "promoteBuffers"));
+        promoteBuffers = NanTo<bool>(NanGet(options, "promoteBuffers"));
       } else {
         return Nan::ThrowError("promoteBuffers argument must be a boolean");
       }
@@ -1567,7 +1582,8 @@ Local<Object> BSON::GetSerializeObject(const Local<Value> &argValue) {
     if (!toBSON->IsFunction())
       ThrowAllocatedStringException(64, "toBSON is not a function");
 
-    Local<Value> result = Unmaybe(Nan::Call(Local<Function>::Cast(toBSON), object, 0, NULL));
+    Local<Value> result =
+        Unmaybe(Nan::Call(Local<Function>::Cast(toBSON), object, 0, NULL));
     if (!result->IsObject())
       ThrowAllocatedStringException(64,
                                     "toBSON function did not return an object");
@@ -1606,8 +1622,7 @@ NAN_METHOD(BSON::BSONSerialize) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "serializeFunctions")) {
       if (NanGet(options, "serializeFunctions")->IsBoolean()) {
-        serializeFunctions =
-            NanTo<bool>(NanGet(options, "serializeFunctions"));
+        serializeFunctions = NanTo<bool>(NanGet(options, "serializeFunctions"));
       } else {
         return Nan::ThrowError("serializeFunctions argument must be a boolean");
       }
@@ -1616,8 +1631,7 @@ NAN_METHOD(BSON::BSONSerialize) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "ignoreUndefined")) {
       if (NanGet(options, "ignoreUndefined")->IsBoolean()) {
-        ignoreUndefined =
-            NanTo<bool>(NanGet(options, "ignoreUndefined"));
+        ignoreUndefined = NanTo<bool>(NanGet(options, "ignoreUndefined"));
       } else {
         return Nan::ThrowError("ignoreUndefined argument must be a boolean");
       }
@@ -1695,8 +1709,7 @@ NAN_METHOD(BSON::CalculateObjectSize) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "serializeFunctions")) {
       if (NanGet(options, "serializeFunctions")->IsBoolean()) {
-        serializeFunctions =
-            NanTo<bool>(NanGet(options, "serializeFunctions"));
+        serializeFunctions = NanTo<bool>(NanGet(options, "serializeFunctions"));
       } else {
         return Nan::ThrowError("serializeFunctions argument must be a boolean");
       }
@@ -1705,8 +1718,7 @@ NAN_METHOD(BSON::CalculateObjectSize) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "ignoreUndefined")) {
       if (NanGet(options, "ignoreUndefined")->IsBoolean()) {
-        ignoreUndefined =
-            NanTo<bool>(NanGet(options, "ignoreUndefined"));
+        ignoreUndefined = NanTo<bool>(NanGet(options, "ignoreUndefined"));
       } else {
         return Nan::ThrowError("ignoreUndefined argument must be a boolean");
       }
@@ -1761,8 +1773,7 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "serializeFunctions")) {
       if (NanGet(options, "serializeFunctions")->IsBoolean()) {
-        serializeFunctions =
-            NanTo<bool>(NanGet(options, "serializeFunctions"));
+        serializeFunctions = NanTo<bool>(NanGet(options, "serializeFunctions"));
       } else {
         return Nan::ThrowError("serializeFunctions argument must be a boolean");
       }
@@ -1771,8 +1782,7 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
     // Check if we have the serializeFunctions variable
     if (NanHas(options, "ignoreUndefined")) {
       if (NanGet(options, "ignoreUndefined")->IsBoolean()) {
-        ignoreUndefined =
-            NanTo<bool>(NanGet(options, "ignoreUndefined"));
+        ignoreUndefined = NanTo<bool>(NanGet(options, "ignoreUndefined"));
       } else {
         return Nan::ThrowError("ignoreUndefined argument must be a boolean");
       }
@@ -1869,8 +1879,7 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
     // Check if we have the promoteLongs variable
     if (NanHas(options, "promoteBuffers")) {
       if (NanGet(options, "promoteBuffers")->IsBoolean()) {
-        promoteBuffers =
-            NanTo<bool>(NanGet(options, "promoteBuffers"));
+        promoteBuffers = NanTo<bool>(NanGet(options, "promoteBuffers"));
       } else {
         return Nan::ThrowError("promoteBuffers argument must be a boolean");
       }
@@ -1925,7 +1934,8 @@ NAN_METHOD(BSON::BSONDeserializeStream) {
                                 fieldsAsRaw);
   for (uint32_t i = 0; i < numberOfDocuments; i++) {
     try {
-      Nan::Set(documents, i + resultIndex, deserializer.DeserializeDocument(false));
+      Nan::Set(documents, i + resultIndex,
+               deserializer.DeserializeDocument(false));
     } catch (char *exception) {
       Local<String> error = NanStr(exception);
       free(exception);
