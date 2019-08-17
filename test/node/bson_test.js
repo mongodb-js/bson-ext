@@ -1838,7 +1838,7 @@ describe('BSON', function() {
    */
   it('Should correctly calculate the size of a given javascript object', function(done) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     var bson = createBSON();
     // Calculate the size of the object without serializing the function
     var size = bson.calculateObjectSize(doc, {
@@ -1865,7 +1865,7 @@ describe('BSON', function() {
     done
   ) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     // Create a BSON parser instance
     var bson = createBSON();
     // Calculate the size of the object without serializing the function
@@ -1891,7 +1891,7 @@ describe('BSON', function() {
    */
   it('Should correctly serializeWithBufferAndIndex a given javascript object', function(done) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     var bson = createBSON();
 
     // Calculate the size of the document, no function serialization
@@ -1937,7 +1937,7 @@ describe('BSON', function() {
     done
   ) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     // Create a BSON parser instance
     var bson = createBSON();
     // Calculate the size of the document, no function serialization
@@ -1981,7 +1981,7 @@ describe('BSON', function() {
    */
   it('Should correctly serialize a given javascript object', function(done) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     // Create a BSON parser instance
     var bson = createBSON();
 
@@ -2012,7 +2012,7 @@ describe('BSON', function() {
    */
   it('Should correctly serialize a given javascript object using a bson instance', function(done) {
     // Create a simple object
-    var doc = { a: 1, func: function() {} };
+    var doc = { a: 1, func: function () {} };
     // Create a BSON parser instance
     var bson = createBSON();
 
