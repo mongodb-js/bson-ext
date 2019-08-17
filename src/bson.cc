@@ -1416,7 +1416,11 @@ NAN_METHOD(BSON::New) {
           bson->int32Constructor.Reset(func);
           foundClassesMask |= 0x1000;
         } else {
+#if NODE_MAJOR_VERSION >= 10
           v8::String::Utf8Value str(v8::Isolate::GetCurrent(), functionName);
+#else
+          v8::String::Utf8Value str(functionName);
+#endif
         }
       }
 

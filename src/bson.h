@@ -47,7 +47,12 @@ const int preLoadedIndex = 10000;
 #define NanEquals(a, b) (Unmaybe(Nan::Equals(a, b)))
 #define NanToString(obj) (Unmaybe(obj->ToString(Nan::GetCurrentContext())))
 #define NanToObject(obj) (Unmaybe(obj->ToObject(Nan::GetCurrentContext())))
+
+#if NODE_MAJOR_VERSION >= 10
 #define NanUtf8Length(obj) (obj->Utf8Length(v8::Isolate::GetCurrent()))
+#else
+#define NanUtf8Length(obj) (obj->Utf8Length())
+#endif
 // Unmaybe overloading to conviniently convert from Local/MaybeLocal/Maybe to
 // Local/plain value
 template <class T> inline Local<T> Unmaybe(Local<T> h) { return h; }
@@ -77,11 +82,19 @@ inline const char *ToCString(const v8::String::Utf8Value &value) {
   return *value ? *value : "<string conversion failed>";
 }
 inline int NanWriteUtf8(const v8::Local<v8::String> str, char *buffer) {
+#if NODE_MAJOR_VERSION >= 10
   return str->WriteUtf8(v8::Isolate::GetCurrent(), buffer);
+#else
+  return str->WriteUtf8(buffer);
+#endif
 }
 inline int NanWrite(const v8::Local<v8::String> str, uint16_t *buffer,
                     int start = 0, int length = -1) {
+#if NODE_MAJOR_VERSION >= 10
   return str->Write(v8::Isolate::GetCurrent(), buffer, start, length);
+#else
+  return str->Write(buffer, start, length);
+#endif
 }
 
 //===========================================================================
@@ -393,7 +406,7 @@ public:
   void WriteString(const Local<String> &value) {
     if ((size_t)(p - destinationBuffer) > MAX_BSON_SIZE)
       throw "document is larger than max bson document size of 16MB";
-    p += value->WriteUtf8(v8::Isolate::GetCurrent(), p);
+    p += NanWriteUtf8(value, p);
   } // This returns the number of bytes inclusive of the NULL terminator.
 
   void WriteData(const char *data, size_t length) {
