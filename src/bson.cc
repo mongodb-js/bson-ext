@@ -62,10 +62,11 @@ bool ValidateEncoding(const uint8_t *bytes, size_t length) {
 // Equality Objects
 static const char *LONG_CLASS_NAME = "Long";
 static const char *OBJECT_ID_CLASS_NAME = "ObjectID";
+static const char *NEW_OBJECT_ID_CLASS_NAME = "ObjectId";
 static const char *BINARY_CLASS_NAME = "Binary";
 static const char *CODE_CLASS_NAME = "Code";
 static const char *DBREF_CLASS_NAME = "DBRef";
-static const char *SYMBOL_CLASS_NAME = "Symbol";
+static const char *SYMBOL_CLASS_NAME = "BSONSymbol";
 static const char *DOUBLE_CLASS_NAME = "Double";
 static const char *TIMESTAMP_CLASS_NAME = "Timestamp";
 static const char *MIN_KEY_CLASS_NAME = "MinKey";
@@ -76,8 +77,8 @@ static const char *INT32_CLASS_NAME = "Int32";
 
 // Equality speed up comparison objects
 static const char *BSONTYPE_PROPERTY_NAME = "_bsontype";
-static const char *LONG_LOW_PROPERTY_NAME = "low_";
-static const char *LONG_HIGH_PROPERTY_NAME = "high_";
+static const char *LONG_LOW_PROPERTY_NAME = "low";
+static const char *LONG_HIGH_PROPERTY_NAME = "high";
 static const char *OBJECT_ID_ID_PROPERTY_NAME = "id";
 static const char *BINARY_POSITION_PROPERTY_NAME = "position";
 static const char *BINARY_SUBTYPE_PROPERTY_NAME = "sub_type";
@@ -217,8 +218,10 @@ void BSONSerializer<T>::SerializeDocument(const Local<Value> &value) {
     int propertyLength = propertyNames->Length();
     for (int i = 0; i < propertyLength; ++i) {
       propertyName = NanToString(NanGet(propertyNames, i));
-      if (checkKeys)
+      if (checkKeys) {
         this->CheckKey(propertyName);
+      }
+
       propertyValue = NanGet(object, propertyName);
 
       // We are not serializing the function
@@ -1379,7 +1382,10 @@ NAN_METHOD(BSON::New) {
         if (functionName->StrictEquals(NanStr(LONG_CLASS_NAME))) {
           bson->longConstructor.Reset(func);
           foundClassesMask |= 1;
-        } else if (functionName->StrictEquals(NanStr(OBJECT_ID_CLASS_NAME))) {
+        } else if (
+          functionName->StrictEquals(NanStr(OBJECT_ID_CLASS_NAME)) ||
+          functionName->StrictEquals(NanStr(NEW_OBJECT_ID_CLASS_NAME))
+        ) {
           bson->objectIDConstructor.Reset(func);
           foundClassesMask |= 2;
         } else if (functionName->StrictEquals(NanStr(BINARY_CLASS_NAME))) {

@@ -1,27 +1,27 @@
 'use strict';
-
-var Buffer = require('buffer').Buffer,
-  fs = require('fs'),
-  expect = require('chai').expect,
-  BSON = require('../..'),
-  Code = BSON.Code,
-  BSONRegExp = BSON.BSONRegExp,
-  Binary = BSON.Binary,
-  Timestamp = BSON.Timestamp,
-  Long = BSON.Long,
-  ObjectID = BSON.ObjectID,
-  ObjectId = BSON.ObjectID,
-  Symbol = BSON.Symbol,
-  DBRef = BSON.DBRef,
-  Decimal128 = BSON.Decimal128,
-  Int32 = BSON.Int32,
-  Double = BSON.Double,
-  MinKey = BSON.MinKey,
-  MaxKey = BSON.MaxKey,
-  BinaryParser = require('../binary_parser').BinaryParser,
-  vm = require('vm');
-
-var createBSON = require('../utils');
+const fs = require('fs');
+const { Buffer } = require('buffer');
+const { expect } = require('chai');
+const BSON = require('../..');
+const {
+  Binary,
+  Code,
+  DBRef,
+  Decimal128,
+  Double,
+  Int32,
+  Long,
+  Map,
+  MaxKey,
+  MinKey,
+  ObjectId,
+  BSONRegExp,
+  BSONSymbol,
+  Timestamp
+} = BSON;
+const { BinaryParser } = require('../binary_parser');
+const vm = require('vm');
+const createBSON = require('../utils');
 
 // for tests
 BSON.BSON_BINARY_SUBTYPE_DEFAULT = 0;
@@ -90,11 +90,11 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('Should Correctly convert ObjectID to itself', function(done) {
+  it('Should Correctly convert ObjectId to itself', function(done) {
     var myObject, newObject;
     var selfConvertion = function() {
-      myObject = new ObjectID();
-      newObject = ObjectID(myObject);
+      myObject = new ObjectId();
+      newObject = ObjectId(myObject);
     };
 
     expect(selfConvertion).to.not.throw;
@@ -107,13 +107,13 @@ describe('BSON', function() {
    */
   it('Should Correctly get BSON types from require', function(done) {
     var _mongodb = require('../..');
-    expect(_mongodb.ObjectID === ObjectID).to.be.ok;
+    expect(_mongodb.ObjectId === ObjectId).to.be.ok;
     expect(_mongodb.Binary === Binary).to.be.ok;
     expect(_mongodb.Long === Long).to.be.ok;
     expect(_mongodb.Timestamp === Timestamp).to.be.ok;
     expect(_mongodb.Code === Code).to.be.ok;
     expect(_mongodb.DBRef === DBRef).to.be.ok;
-    expect(_mongodb.Symbol === Symbol).to.be.ok;
+    expect(_mongodb.BSONSymbol === BSONSymbol).to.be.ok;
     expect(_mongodb.MinKey === MinKey).to.be.ok;
     expect(_mongodb.MaxKey === MaxKey).to.be.ok;
     expect(_mongodb.Double === Double).to.be.ok;
@@ -969,14 +969,13 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should Correctly Serialize and Deserialize Oid', function(done) {
-    var doc = { doc: new ObjectID() };
-    var serialized_data = createBSON().serialize(doc);
-
-    var serialized_data2 = new Buffer(createBSON().calculateObjectSize(doc));
-    createBSON().serializeWithBufferAndIndex(doc, serialized_data2);
+    const doc = { doc: new ObjectId() };
+    const serialized_data = BSON.serialize(doc);
+    var serialized_data2 = new Buffer(BSON.calculateObjectSize(doc));
+    BSON.serializeWithBufferAndIndex(doc, serialized_data2);
     assertBuffersEqual(done, serialized_data, serialized_data2, 0);
 
-    expect(doc).to.deep.equal(createBSON().deserialize(serialized_data));
+    expect(doc).to.deep.equal(BSON.deserialize(serialized_data));
     done();
   });
 
@@ -1101,7 +1100,7 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should Correctly Serialize and Deserialize DBRef', function(done) {
-    var oid = new ObjectID();
+    var oid = new ObjectId();
     var doc = { dbref: new DBRef('namespace', oid, null, {}) };
     var b = createBSON();
 
@@ -1120,7 +1119,7 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should Correctly Serialize and Deserialize partial DBRef', function(done) {
-    var id = new ObjectID();
+    var id = new ObjectId();
     var doc = { name: 'something', user: { $ref: 'username', $id: id } };
     var b = createBSON();
     var serialized_data = b.serialize(doc);
@@ -1396,7 +1395,7 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should Correctly Serialize and Deserialize array based doc', function(done) {
-    var doc = { b: [1, 2, 3], _id: new ObjectID() };
+    var doc = { b: [1, 2, 3], _id: new ObjectId() };
     var serialized_data = createBSON().serialize(doc);
 
     var serialized_data2 = new Buffer(createBSON().calculateObjectSize(doc));
@@ -1454,7 +1453,7 @@ describe('BSON', function() {
   it('Should handle complicated all typed object', function(done) {
     // First doc
     var date = new Date();
-    var oid = new ObjectID();
+    var oid = new ObjectId();
     var string = 'binstring';
     var bin = new Binary();
     for (var index = 0; index < string.length; index++) {
@@ -1478,7 +1477,7 @@ describe('BSON', function() {
     };
 
     // Second doc
-    oid = new ObjectID.createFromHexString(oid.toHexString());
+    oid = ObjectId.createFromHexString(oid.toHexString());
     string = 'binstring';
     bin = new Binary();
     for (index = 0; index < string.length; index++) {
@@ -1528,7 +1527,7 @@ describe('BSON', function() {
       password_salt: 'salty',
       profile_fields: [],
       username: 'amit',
-      _id: new ObjectID()
+      _id: new ObjectId()
     };
 
     var serialized_data = createBSON().serialize(doc);
@@ -1538,7 +1537,7 @@ describe('BSON', function() {
     assertBuffersEqual(done, serialized_data, serialized_data2, 0);
 
     var doc2 = doc;
-    doc2._id = ObjectID.createFromHexString(doc2._id.toHexString());
+    doc2._id = ObjectId.createFromHexString(doc2._id.toHexString());
     serialized_data2 = createBSON().serialize(doc2, false, true);
 
     for (var i = 0; i < serialized_data2.length; i++) {
@@ -1552,8 +1551,8 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should correctly massive doc', function(done) {
-    var oid1 = new ObjectID();
-    var oid2 = new ObjectID();
+    var oid1 = new ObjectId();
+    var oid2 = new ObjectId();
 
     var b = createBSON();
 
@@ -1566,10 +1565,10 @@ describe('BSON', function() {
     var doc2 = {
       dbref2: new DBRef(
         'namespace',
-        ObjectID.createFromHexString(oid1.toHexString()),
+        ObjectId.createFromHexString(oid1.toHexString()),
         'integration_tests_'
       ),
-      _id: new ObjectID.createFromHexString(oid2.toHexString())
+      _id: ObjectId.createFromHexString(oid2.toHexString())
     };
 
     var serialized_data = b.serialize(doc);
@@ -1607,7 +1606,7 @@ describe('BSON', function() {
    * @ignore
    */
   it('Should Correctly Serialize/Deserialize complicated object', function(done) {
-    var doc = { a: { b: { c: [new ObjectID(), new ObjectID()] } }, d: { f: 1332.3323 } };
+    var doc = { a: { b: { c: [new ObjectId(), new ObjectId()] } }, d: { f: 1332.3323 } };
 
     var serialized_data = createBSON().serialize(doc);
 
@@ -1716,7 +1715,7 @@ describe('BSON', function() {
    */
   it('Should deserialize correctly', function(done) {
     var doc = {
-      _id: new ObjectID('4e886e687ff7ef5e00000162'),
+      _id: new ObjectId('4e886e687ff7ef5e00000162'),
       str: 'foreign',
       type: 2,
       timestamp: ISODate('2011-10-02T14:00:08.383Z'),
@@ -1740,7 +1739,7 @@ describe('BSON', function() {
    */
   it('Should correctly serialize and deserialize MinKey and MaxKey values', function(done) {
     var doc = {
-      _id: new ObjectID('4e886e687ff7ef5e00000162'),
+      _id: new ObjectId('4e886e687ff7ef5e00000162'),
       minKey: new MinKey(),
       maxKey: new MaxKey()
     };
@@ -1782,10 +1781,10 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('ObjectID should correctly create objects', function(done) {
+  it('ObjectId should correctly create objects', function(done) {
     try {
-      ObjectID.createFromHexString('000000000000000000000001');
-      ObjectID.createFromHexString('00000000000000000000001');
+      ObjectId.createFromHexString('000000000000000000000001');
+      ObjectId.createFromHexString('00000000000000000000001');
       expect(false).to.be.ok;
     } catch (err) {
       expect(err != null).to.be.ok;
@@ -1797,9 +1796,9 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('ObjectID should correctly retrieve timestamp', function(done) {
+  it('ObjectId should correctly retrieve timestamp', function(done) {
     var testDate = new Date();
-    var object1 = new ObjectID();
+    var object1 = new ObjectId();
     expect(Math.floor(testDate.getTime() / 1000)).to.equal(
       Math.floor(object1.getTimestamp().getTime() / 1000)
     );
@@ -2185,24 +2184,24 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('ObjectID should have a correct cached representation of the hexString', function(done) {
-    ObjectID.cacheHexString = true;
-    var a = new ObjectID();
+  it('ObjectId should have a correct cached representation of the hexString', function(done) {
+    ObjectId.cacheHexString = true;
+    var a = new ObjectId();
     var __id = a.__id;
     expect(__id).to.equal(a.toHexString());
 
     // hexString
-    a = new ObjectID(__id);
+    a = new ObjectId(__id);
     expect(__id).to.equal(a.toHexString());
 
     // fromHexString
-    a = ObjectID.createFromHexString(__id);
+    a = ObjectId.createFromHexString(__id);
     expect(a.__id).to.equal(a.toHexString());
     expect(__id).to.equal(a.toHexString());
 
     // number
     var genTime = a.generationTime;
-    a = new ObjectID(genTime);
+    a = new ObjectId(genTime);
     __id = a.__id;
     expect(__id).to.equal(a.toHexString());
 
@@ -2223,27 +2222,27 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('Should fail to create ObjectID due to illegal hex code', function(done) {
+  it('Should fail to create ObjectId due to illegal hex code', function(done) {
     try {
-      new ObjectID('zzzzzzzzzzzzzzzzzzzzzzzz');
+      new ObjectId('zzzzzzzzzzzzzzzzzzzzzzzz');
       expect(false).to.be.ok;
     } catch (err) {
       expect(true).to.be.ok;
     }
 
-    expect(false).to.equal(ObjectID.isValid(null));
-    expect(false).to.equal(ObjectID.isValid({}));
-    expect(false).to.equal(ObjectID.isValid({ length: 12 }));
-    expect(false).to.equal(ObjectID.isValid([]));
-    expect(false).to.equal(ObjectID.isValid(true));
-    expect(true).to.equal(ObjectID.isValid(0));
-    expect(false).to.equal(ObjectID.isValid('invalid'));
-    expect(true).to.equal(ObjectID.isValid('zzzzzzzzzzzz'));
-    expect(false).to.equal(ObjectID.isValid('zzzzzzzzzzzzzzzzzzzzzzzz'));
-    expect(true).to.equal(ObjectID.isValid('000000000000000000000000'));
-    expect(true).to.equal(ObjectID.isValid(new ObjectID('thisis12char')));
+    expect(false).to.equal(ObjectId.isValid(null));
+    expect(false).to.equal(ObjectId.isValid({}));
+    expect(false).to.equal(ObjectId.isValid({ length: 12 }));
+    expect(false).to.equal(ObjectId.isValid([]));
+    expect(false).to.equal(ObjectId.isValid(true));
+    expect(true).to.equal(ObjectId.isValid(0));
+    expect(false).to.equal(ObjectId.isValid('invalid'));
+    expect(true).to.equal(ObjectId.isValid('zzzzzzzzzzzz'));
+    expect(false).to.equal(ObjectId.isValid('zzzzzzzzzzzzzzzzzzzzzzzz'));
+    expect(true).to.equal(ObjectId.isValid('000000000000000000000000'));
+    expect(true).to.equal(ObjectId.isValid(new ObjectId('thisis12char')));
 
-    var tmp = new ObjectID();
+    var tmp = new ObjectId();
     // Cloning tmp so that instanceof fails to fake import from different version/instance of the same npm package
     var objectIdLike = {
       id: tmp.id,
@@ -2254,7 +2253,7 @@ describe('BSON', function() {
 
     expect(true).to.equal(tmp.equals(objectIdLike));
     expect(true).to.equal(tmp.equals(new ObjectId(objectIdLike)));
-    expect(true).to.equal(ObjectID.isValid(objectIdLike));
+    expect(true).to.equal(ObjectId.isValid(objectIdLike));
 
     done();
   });
@@ -2297,9 +2296,9 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('Should return boolean for ObjectID equality check', function(done) {
-    var id = new ObjectID();
-    expect(true).to.equal(id.equals(new ObjectID(id.toString())));
+  it('Should return boolean for ObjectId equality check', function(done) {
+    var id = new ObjectId();
+    expect(true).to.equal(id.equals(new ObjectId(id.toString())));
     expect(true).to.equal(id.equals(id.toString()));
     expect(false).to.equal(id.equals('1234567890abcdef12345678'));
     expect(false).to.equal(id.equals('zzzzzzzzzzzzzzzzzzzzzzzz'));
