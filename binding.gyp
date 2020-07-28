@@ -11,7 +11,9 @@
         ['OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+            'MACOSX_DEPLOYMENT_TARGET': '10.7',
             'OTHER_CFLAGS': [
+              '-stdlib=libc++',
               '-O3',
               '-msse2',
               '-ffast-math',
@@ -29,9 +31,15 @@
         ['OS=="linux"', {
           "cflags": [
             "-O3",
-            "-msse2",
             "-ffast-math",
             "-fexceptions"
+          ],
+          "conditions": [
+            ['target_arch=="arm64"', {
+              "cflags": []
+            }, {
+              "cflags": ["-msse2"]
+            }]
           ]
         }]
       ]

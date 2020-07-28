@@ -20,14 +20,16 @@
   "dependencies": {
     "bindings": "^1.3.0",
     "bson": "^2.0.2",
-    "nan": "^2.14.0"
+    "nan": "^2.14.0",
+    "prebuild-install": "5.3.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",
     "clang-format": "^1.2.2",
     "conventional-changelog-cli": "^1.3.15",
     "mocha": "^3.5.3",
-    "mongodb-extjson": "^2.1.0"
+    "mongodb-extjson": "^2.1.0",
+    "prebuild": "^9.0.1"
   },
   "main": "./lib/index",
   "engines": {
@@ -36,7 +38,9 @@
   "scripts": {
     "changelog": "conventional-changelog -p angular -i HISTORY.md -s",
     "format": "clang-format -i --style=file --glob=\"src/*.{h,cc}\"",
-    "install": "(node-gyp rebuild 2> builderror.log) || (exit 0)",
+    "install": "prebuild-install || node-gyp rebuild",
+    "rebuild": "prebuild --compile",
+    "prebuild": "prebuild  --strip --verbose --all",
     "test": "mocha ./test/node"
   },
   "licenses": [
