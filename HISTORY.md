@@ -1,3 +1,13 @@
+<a name="2.03"></a>
+## [2.03](https://github.com/christkv/bson-ext/compare/v2.0.2...v2.03) (2019-04-08)
+
+
+### Bug Fixes
+
+* **compat:** node >= v12 compatibility
+
+
+
 <a name="2.0.2"></a>
 ## [2.0.2](https://github.com/christkv/bson-ext/compare/v2.0.0...v2.0.2) (2019-04-08)
 
