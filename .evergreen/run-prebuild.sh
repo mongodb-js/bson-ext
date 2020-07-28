@@ -14,6 +14,7 @@ run_prebuild() {
   else
     echo "Github token detected. Running prebuild."
     npm run prebuild -- -u $NODE_GITHUB_TOKEN
+    npm run prebuild-legacy -- -u $NODE_GITHUB_TOKEN
     echo "Prebuild's successfully submitted"
   fi
 }

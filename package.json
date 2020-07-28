@@ -41,6 +41,7 @@
     "install": "prebuild-install || node-gyp rebuild",
     "rebuild": "prebuild --compile",
     "prebuild": "prebuild  --strip --verbose --all",
+    "prebuild-legacy": "prebuild  --strip --verbose --runtime node --target 4.0.0",
     "test": "mocha ./test/node"
   },
   "licenses": [
