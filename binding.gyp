@@ -35,7 +35,7 @@
             "-fexceptions"
           ],
           "conditions": [
-            ['target_arch!="arm" and target_arch!="arm64"', {"cflags": ["-msse2"]}]
+            ['target_arch!="arm" and target_arch!="arm64" and target_arch!="s390x"', {"cflags": ["-msse2"]}]
           ]
         }]
       ]
