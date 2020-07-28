@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      # 'win_delay_load_hook': 'true',
+      'win_delay_load_hook': 'true',
       'target_name': 'bson',
       'sources': [ 'src/bson.cc' ],
       'cflags!': [ '-fno-exceptions' ],
@@ -26,7 +26,8 @@
             'VCCLCompilerTool': {
               'ExceptionHandling': 1
             }
-          }
+          },
+          'msvs_version': '2013'
         }],
         ['OS=="linux"', {
           "cflags": [
