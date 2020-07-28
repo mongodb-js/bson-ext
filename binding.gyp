@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      'win_delay_load_hook': 'true',
+      # 'win_delay_load_hook': 'true',
       'target_name': 'bson',
       'sources': [ 'src/bson.cc' ],
       'cflags!': [ '-fno-exceptions' ],
@@ -11,7 +11,7 @@
         ['OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
-            'MACOSX_DEPLOYMENT_TARGET': '10.7',
+            'MACOSX_DEPLOYMENT_TARGET': '10.9',
             'OTHER_CFLAGS': [
               '-stdlib=libc++',
               '-O3',
@@ -35,11 +35,7 @@
             "-fexceptions"
           ],
           "conditions": [
-            ['target_arch=="arm64"', {
-              "cflags": []
-            }, {
-              "cflags": ["-msse2"]
-            }]
+            ['target_arch!="arm" and target_arch!="arm64"', {"cflags": ["-msse2"]}]
           ]
         }]
       ]
