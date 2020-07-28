@@ -44,6 +44,7 @@ path: $NVM_SYMLINK
 EOT
 
   nvm install ${NODE_VERSION}
+  npm config set msvs_version 2017
 else
   curl -o- $NVM_URL | bash
   [ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"

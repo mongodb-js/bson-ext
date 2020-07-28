@@ -26,8 +26,7 @@
             'VCCLCompilerTool': {
               'ExceptionHandling': 1
             }
-          },
-          'msvs_version': '2013'
+          }
         }],
         ['OS=="linux"', {
           "cflags": [
