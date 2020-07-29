@@ -48,7 +48,7 @@ const int preLoadedIndex = 10000;
 #define NanToString(obj) (Unmaybe(obj->ToString(Nan::GetCurrentContext())))
 #define NanToObject(obj) (Unmaybe(obj->ToObject(Nan::GetCurrentContext())))
 
-#if NODE_MAJOR_VERSION >= 10
+#if NODE_MAJOR_VERSION >= 12
 #define NanUtf8Length(obj) (obj->Utf8Length(v8::Isolate::GetCurrent()))
 #else
 #define NanUtf8Length(obj) (obj->Utf8Length())
@@ -82,7 +82,7 @@ inline const char *ToCString(const v8::String::Utf8Value &value) {
   return *value ? *value : "<string conversion failed>";
 }
 inline int NanWriteUtf8(const v8::Local<v8::String> str, char *buffer) {
-#if NODE_MAJOR_VERSION >= 10
+#if NODE_MAJOR_VERSION >= 12
   return str->WriteUtf8(v8::Isolate::GetCurrent(), buffer);
 #else
   return str->WriteUtf8(buffer);
@@ -90,7 +90,7 @@ inline int NanWriteUtf8(const v8::Local<v8::String> str, char *buffer) {
 }
 inline int NanWrite(const v8::Local<v8::String> str, uint16_t *buffer,
                     int start = 0, int length = -1) {
-#if NODE_MAJOR_VERSION >= 10
+#if NODE_MAJOR_VERSION >= 12
   return str->Write(v8::Isolate::GetCurrent(), buffer, start, length);
 #else
   return str->Write(buffer, start, length);
