@@ -50,12 +50,5 @@
       "type": "Apache License, Version 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0"
     }
-  ],
-  "binary": {
-    "module_name": "bson",
-    "module_path": "build/Release",
-    "host": "https://bin.mongodb.org",
-    "remote_path": "/js/bson-ext/v{version}",
-    "bucket": "mongodb-dx-public"
-  }
+  ]
 }
