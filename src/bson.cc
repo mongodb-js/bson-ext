@@ -1272,7 +1272,7 @@ NAN_METHOD(BSON::New) {
   Nan::HandleScope scope;
 
   // Var maximum bson size
-  uint32_t maxBSONSize = MAX_BSON_SIZE;
+  uint32_t maxBSONSize = 17 * 1024 * 1024;
 
   // Check that we have an array
   if (info.Length() >= 1 && info[0]->IsArray()) {
