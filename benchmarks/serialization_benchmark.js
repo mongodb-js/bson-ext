@@ -1,9 +1,5 @@
 var BSON = require('../');
-var bson = new BSON([BSON.Binary, BSON.Code, BSON.DBRef, BSON.Decimal128,
-  BSON.Double, BSON.Int32, BSON.Long, BSON.Map, BSON.MaxKey, BSON.MinKey,
-  BSON.ObjectId, BSON.BSONRegExp, BSON.Symbol, BSON.Timestamp]);
 var BSONJS = require('bson');
-var bsonJS = new BSONJS();
 
 function generateRecord(recnum) {
   // Definition of a 'Document'
@@ -79,7 +75,7 @@ var iterations = 100000;
 // var iterations = 10000;
 // var iterations = 1;
 var doc = generateRecord(0)
-var buffer = bson.serialize(doc);
+var buffer = BSON.serialize(doc);
 var start = new Date();
 
 // console.log("=====================================================")
@@ -89,7 +85,7 @@ var start = new Date();
 // Serialize
 //
 for(var i = 0; i < iterations; i++) {
-  bson.serialize(doc);
+  BSON.serialize(doc);
 }
 
 var end = new Date();
@@ -99,7 +95,7 @@ console.log("totalMS = " + (end.getTime() - start.getTime()));
 var start = new Date();
 
 for(var i = 0; i < iterations; i++) {
-  bsonJS.serialize(doc);
+  BSONJS.serialize(doc);
 }
 
 var end = new Date();
@@ -112,7 +108,7 @@ console.log("totalMS = " + (end.getTime() - start.getTime()));
 var start = new Date();
 
 for(var i = 0; i < iterations; i++) {
-  bson.deserialize(buffer);
+  BSON.deserialize(buffer);
 }
 
 var end = new Date();
@@ -122,7 +118,7 @@ console.log("totalMS = " + (end.getTime() - start.getTime()));
 var start = new Date();
 
 for(var i = 0; i < iterations; i++) {
-  bsonJS.deserialize(buffer);
+  BSONJS.deserialize(buffer);
 }
 
 var end = new Date();
