@@ -26,6 +26,7 @@
     "chai": "^4.3.4",
     "clang-format": "^1.5.0",
     "mocha": "^5.2.0",
+    "node-gyp": "^8.0.0",
     "prebuild": "^10.0.1",
     "standard-version": "^9.3.0"
   },
@@ -39,6 +40,7 @@
     "rebuild": "prebuild --compile",
     "prebuild": "prebuild  --strip --verbose --all",
     "release": "standard-version -i HISTORY.md",
+    "pretest": "npm run rebuild",
     "test": "mocha ./test/node"
   },
   "license": "Apache-2.0"
