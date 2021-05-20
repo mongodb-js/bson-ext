@@ -44,3 +44,5 @@ builderror.log
 bson.sublime-project
 bson.sublime-workspace
 .vagrant/
+
+prebuilds/

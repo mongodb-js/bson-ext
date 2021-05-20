@@ -23,21 +23,6 @@ var Buffer = require('buffer').Buffer,
 
 var createBSON = require('../utils');
 
-// for tests
-BSON.BSON_BINARY_SUBTYPE_DEFAULT = 0;
-BSON.BSON_BINARY_SUBTYPE_FUNCTION = 1;
-BSON.BSON_BINARY_SUBTYPE_BYTE_ARRAY = 2;
-BSON.BSON_BINARY_SUBTYPE_UUID = 3;
-BSON.BSON_BINARY_SUBTYPE_MD5 = 4;
-BSON.BSON_BINARY_SUBTYPE_USER_DEFINED = 128;
-
-BSON.BSON_BINARY_SUBTYPE_DEFAULT = 0;
-BSON.BSON_BINARY_SUBTYPE_FUNCTION = 1;
-BSON.BSON_BINARY_SUBTYPE_BYTE_ARRAY = 2;
-BSON.BSON_BINARY_SUBTYPE_UUID = 3;
-BSON.BSON_BINARY_SUBTYPE_MD5 = 4;
-BSON.BSON_BINARY_SUBTYPE_USER_DEFINED = 128;
-
 var assertBuffersEqual = function(done, buffer1, buffer2) {
   if (buffer1.length !== buffer2.length) {
     done('Buffers do not have the same length', buffer1, buffer2);

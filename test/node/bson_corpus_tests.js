@@ -22,7 +22,8 @@ var serializeOptions = {
 
 var skip = {
   'NaN with payload':
-    'passing this would require building a custom type to store the NaN payload data.'
+    'passing this would require building a custom type to store the NaN payload data.',
+  'flags not alphabetized': 'Un-skip when NODE-3282 is fixed in JS BSON',
 };
 
 function findScenarios() {
