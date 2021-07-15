@@ -7,15 +7,17 @@
     "parser"
   ],
   "version": "1.0.5",
-  "author": "Christian Amor Kvalheim <christkv@gmail.com>",
+  "author": { 
+    "name": "The MongoDB NodeJS Team", 
+    "email": "dbx-node@mongodb.com"
+  },
   "contributors": [],
   "repository": {
     "type": "git",
     "url": "git://github.com/christkv/bson-ext.git"
   },
   "bugs": {
-    "mail": "node-mongodb-native@googlegroups.com",
-    "url": "https://github.com/christkv/bson-ext/issues"
+    "url": "https://jira.mongodb.org/projects/NODE/issues/"
   },
   "dependencies": {
     "bindings": "^1.2.1",
