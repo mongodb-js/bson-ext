@@ -8,8 +8,8 @@
   ],
   "version": "1.0.5",
   "author": { 
-    "name" : "The MongoDB NodeJS Team", 
-    "email" : "dbx-node@mongodb.com"
+    "name": "The MongoDB NodeJS Team", 
+    "email": "dbx-node@mongodb.com"
   },
   "contributors": [],
   "repository": {
