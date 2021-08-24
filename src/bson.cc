@@ -754,11 +754,9 @@ Local<Value> BSONDeserializer::DeserializeDocument(bool raw) {
   BSONDeserializer documentDeserializer(*this, length - 4, bsonRegExp,
                                         promoteLongs, promoteBuffers,
                                         promoteValues, fieldsAsRaw);
-                                        
-
-  
   // Serialize the document
   Local<Value> value = documentDeserializer.DeserializeDocumentInternal();
+  
   if (length != (p - start)) {
     ThrowAllocatedStringException(64, "Illegal Document Length");
   }
@@ -801,6 +799,7 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
         }
       }
     }
+    
     // Deserialize the value
     const Local<Value> &value = DeserializeValue(type, raw);
     Nan::Set(returnObject, name, value);
