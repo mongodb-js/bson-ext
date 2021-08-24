@@ -754,9 +754,11 @@ Local<Value> BSONDeserializer::DeserializeDocument(bool raw) {
   BSONDeserializer documentDeserializer(*this, length - 4, bsonRegExp,
                                         promoteLongs, promoteBuffers,
                                         promoteValues, fieldsAsRaw);
+                                        
+
+  
   // Serialize the document
   Local<Value> value = documentDeserializer.DeserializeDocumentInternal();
-
   if (length != (p - start)) {
     ThrowAllocatedStringException(64, "Illegal Document Length");
   }
@@ -769,9 +771,13 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
   Local<Object> returnObject = Unmaybe(Nan::New<Object>());
   Local<String> propertyName;
   bool raw = false;
+  bool hasDollar = false;
 
   while (HasMoreData()) {
     BsonType type = (BsonType)ReadByte();
+    if (*p == '$') {
+      hasDollar = true;
+    }
     const Local<Value> &name = ReadCString();
     if (name->IsNull())
       ThrowAllocatedStringException(64, "Bad BSON Document: illegal CString");
@@ -795,7 +801,6 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
         }
       }
     }
-
     // Deserialize the value
     const Local<Value> &value = DeserializeValue(type, raw);
     Nan::Set(returnObject, name, value);
@@ -806,43 +811,45 @@ Local<Value> BSONDeserializer::DeserializeDocumentInternal() {
         64, "Bad BSON Document: Serialize consumed unexpected number of bytes");
 
   // Determine if we need to return a DBRef or not
-  Local<Value> dbRefRefValue = NanGet(returnObject, DBREF_REF_PROPERTY_NAME);
-  Local<Value> dbRefIdValue = NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME);
-  Local<Value> dbRefDbValue = NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME);
-  if (!dbRefRefValue->IsUndefined() && !dbRefIdValue->IsUndefined()) {
-    Local<Object> fieldsObject = Unmaybe(Nan::New<Object>());
-    Local<Array> propertyNames = Unmaybe(Nan::GetPropertyNames(returnObject));
-    int propertyLength = propertyNames->Length();
-    for (int i = 0; i < propertyLength; ++i) {
-      propertyName = NanToString(NanGet(propertyNames, i));
+  if (hasDollar) {
+    Local<Value> dbRefRefValue = NanGet(returnObject, DBREF_REF_PROPERTY_NAME);
+    Local<Value> dbRefIdValue = NanGet(returnObject, DBREF_ID_REF_PROPERTY_NAME);
+    Local<Value> dbRefDbValue = NanGet(returnObject, DBREF_DB_REF_PROPERTY_NAME);
+    if (!dbRefRefValue->IsUndefined() && !dbRefIdValue->IsUndefined()) {
+      Local<Object> fieldsObject = Unmaybe(Nan::New<Object>());
+      Local<Array> propertyNames = Unmaybe(Nan::GetPropertyNames(returnObject));
+      int propertyLength = propertyNames->Length();
+      for (int i = 0; i < propertyLength; ++i) {
+        propertyName = NanToString(NanGet(propertyNames, i));
 
-      // First check if we have an invalid escaped key
-      std::string check(*Nan::Utf8String(propertyName));
+        // First check if we have an invalid escaped key
+        std::string check(*Nan::Utf8String(propertyName));
 
-      if (check[0] == '$' &&
-          (strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) != 0 &&
-           strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) != 0 &&
-           strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) != 0)) {
-        // this is not a proper DBRef, we're safe to just return the
-        // returnObject
-        return returnObject;
+        if (check[0] == '$' &&
+            (strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) != 0 &&
+            strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) != 0 &&
+            strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) != 0)) {
+          // this is not a proper DBRef, we're safe to just return the
+          // returnObject
+          return returnObject;
+        }
+
+        // Now build up the `fields` object
+        if (strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) == 0 ||
+            strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) == 0 ||
+            strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) == 0) {
+          continue;
+        }
+
+        Nan::Set(fieldsObject, propertyName, NanGet(returnObject, propertyName));
       }
 
-      // Now build up the `fields` object
-      if (strcmp(check.c_str(), DBREF_REF_PROPERTY_NAME) == 0 ||
-          strcmp(check.c_str(), DBREF_ID_REF_PROPERTY_NAME) == 0 ||
-          strcmp(check.c_str(), DBREF_DB_REF_PROPERTY_NAME) == 0) {
-        continue;
-      }
-
-      Nan::Set(fieldsObject, propertyName, NanGet(returnObject, propertyName));
+      Local<Value> argv[] = {dbRefRefValue, dbRefIdValue, dbRefDbValue,
+                            fieldsObject};
+      Nan::MaybeLocal<Object> obj =
+          Nan::NewInstance(Nan::New(bson->dbrefConstructor), 4, argv);
+      return obj.ToLocalChecked();
     }
-
-    Local<Value> argv[] = {dbRefRefValue, dbRefIdValue, dbRefDbValue,
-                           fieldsObject};
-    Nan::MaybeLocal<Object> obj =
-        Nan::NewInstance(Nan::New(bson->dbrefConstructor), 4, argv);
-    return obj.ToLocalChecked();
   }
 
   return returnObject;
