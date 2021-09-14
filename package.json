@@ -6,9 +6,9 @@
     "bson",
     "parser"
   ],
-  "version": "4.0.0",
-  "author": { 
-    "name": "The MongoDB NodeJS Team", 
+  "version": "4.0.1",
+  "author": {
+    "name": "The MongoDB NodeJS Team",
     "email": "dbx-node@mongodb.com"
   },
   "contributors": [],
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "bson": "^4.3.0",
+    "bson": "^4.5.2",
     "nan": "^2.14.2",
     "prebuild-install": "^6.1.2"
   },
