@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [4.x, 6.x, 8.x, 10.x, 12.x, 14.x]
+        node-version: [6.x, 8.x, 10.x, 12.x, 14.x]
 
     steps:
       - uses: actions/checkout@v2
@@ -22,5 +22,5 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
-      - run: node ./node_modules/.bin/node-gyp rebuild
+      - run: npx node-gyp rebuild
       - run: npm test
