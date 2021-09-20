@@ -219,6 +219,9 @@ void BSONSerializer<T>::SerializeDocument(const Local<Value> &value) {
       propertyName = NanToString(NanGet(propertyNames, i));
       if (checkKeys)
         this->CheckKey(propertyName);
+
+      this->CheckForIllegalString(propertyName);
+
       propertyValue = NanGet(object, propertyName);
 
       // We are not serializing the function
