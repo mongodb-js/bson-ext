@@ -69,29 +69,32 @@
         {
             "description": "Document truncated mid-key",
             "bson": "1200000002666F"
+        },
+        {
+            "description": "Null byte in document key",
+            "bson": "0D000000107800000100000000"
         }
     ],
     "parseErrors": [
         {
-            "description": "Bad $regularExpression (extra field)",
-            "string":
-                "{\"a\" : \"$regularExpression\": {\"pattern\": \"abc\", \"options\": \"\", \"unrelated\": true}}}"
+            "description" : "Bad $regularExpression (extra field)",
+            "string" : "{\"a\" : {\"$regularExpression\": {\"pattern\": \"abc\", \"options\": \"\", \"unrelated\": true}}}"
         },
         {
-            "description": "Bad $regularExpression (missing options field)",
-            "string": "{\"a\" : \"$regularExpression\": {\"pattern\": \"abc\"}}}"
+            "description" : "Bad $regularExpression (missing options field)",
+            "string" : "{\"a\" : {\"$regularExpression\": {\"pattern\": \"abc\"}}}"
         },
         {
             "description": "Bad $regularExpression (pattern is number, not string)",
-            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": 42, \"$options\" : \"\"}}}"
+            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": 42, \"options\" : \"\"}}}"
         },
         {
             "description": "Bad $regularExpression (options are number, not string)",
-            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": \"a\", \"$options\" : 0}}}"
+            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": \"a\", \"options\" : 0}}}"
         },
         {
-            "description": "Bad $regularExpression (missing pattern field)",
-            "string": "{\"a\" : \"$regularExpression\": {\"options\":\"ix\"}}}"
+            "description" : "Bad $regularExpression (missing pattern field)",
+            "string" : "{\"a\" : {\"$regularExpression\": {\"options\":\"ix\"}}}"
         },
         {
             "description": "Bad $oid (number, not string)",
@@ -151,12 +154,15 @@
         },
         {
             "description": "Bad $binary (extra field)",
-            "string":
-                "{\"x\" : {\"$binary\" : {\"base64\" : \"//8=\", \"subType\" : 0, \"unrelated\": true}}}"
+            "string": "{\"x\" : {\"$binary\" : {\"base64\" : \"//8=\", \"subType\" : 0, \"unrelated\": true}}}"
         },
         {
             "description": "Bad $code (type is number, not string)",
             "string": "{\"a\" : {\"$code\" : 42}}"
+        },
+        {
+            "description": "Bad $code (type is number, not string) when $scope is also present",
+            "string": "{\"a\" : {\"$code\" : 42, \"$scope\" : {}}}"
         },
         {
             "description": "Bad $code (extra field)",
@@ -180,13 +186,11 @@
         },
         {
             "description": "Bad $timestamp (extra field at same level as $timestamp)",
-            "string":
-                "{\"a\" : {\"$timestamp\" : {\"t\" : \"123456789\", \"i\" : \"42\"}, \"unrelated\": true } }"
+            "string": "{\"a\" : {\"$timestamp\" : {\"t\" : \"123456789\", \"i\" : \"42\"}, \"unrelated\": true } }"
         },
         {
             "description": "Bad $timestamp (extra field at same level as t and i)",
-            "string":
-                "{\"a\" : {\"$timestamp\" : {\"t\" : \"123456789\", \"i\" : \"42\", \"unrelated\": true} } }"
+            "string": "{\"a\" : {\"$timestamp\" : {\"t\" : \"123456789\", \"i\" : \"42\", \"unrelated\": true} } }"
         },
         {
             "description": "Bad $timestamp (missing t)",
@@ -202,16 +206,7 @@
         },
         {
             "description": "Bad $date (extra field)",
-            "string":
-                "{\"a\" : {\"$date\" : {\"$numberLong\" : \"1356351330501\"}, \"unrelated\": true}}"
-        },
-        {
-            "description": "Bad DBRef (ref is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : 42, \"$id\" : \"abc\"}}"
-        },
-        {
-            "description": "Bad DBRef (db is number, not string)",
-            "string": "{\"x\" : {\"$ref\" : \"a\", \"$id\" : \"abc\", \"$db\" : 42}}"
+            "string": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"1356351330501\"}, \"unrelated\": true}}"
         },
         {
             "description": "Bad $minKey (boolean, not integer)",
@@ -239,8 +234,23 @@
         },
         {
             "description": "Bad DBpointer (extra field)",
-            "string":
-                "{\"a\": {\"$dbPointer\": {\"a\": {\"$numberInt\": \"1\"}, \"$id\": {\"$oid\": \"56e1fc72e0c917e9c4714161\"}, \"c\": {\"$numberInt\": \"2\"}, \"$ref\": \"b\"}}}"
+            "string": "{\"a\": {\"$dbPointer\": {\"a\": {\"$numberInt\": \"1\"}, \"$id\": {\"$oid\": \"56e1fc72e0c917e9c4714161\"}, \"c\": {\"$numberInt\": \"2\"}, \"$ref\": \"b\"}}}"
+        },
+        {
+            "description" : "Null byte in document key",
+            "string" : "{\"a\\u0000\": 1 }"
+        },
+        {
+            "description" : "Null byte in sub-document key",
+            "string" : "{\"a\" : {\"b\\u0000\": 1 }}"
+        },
+        {
+            "description": "Null byte in $regularExpression pattern",
+            "string": "{\"a\" : {\"$regularExpression\" : { \"pattern\": \"b\\u0000\", \"options\" : \"i\"}}}"
+        },
+        {
+            "description": "Null byte in $regularExpression options",
+            "string": "{\"a\" : {\"$regularExpression\" : { \"pattern\": \"b\", \"options\" : \"i\\u0000\"}}}"
         }
     ]
 }
