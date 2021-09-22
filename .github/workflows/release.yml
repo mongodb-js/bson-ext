@@ -1,0 +1,24 @@
+name: Node.js Package
+on:
+  push:
+    tags: ['v2*'] # Only trigger on major version 2 tags
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        node-version: [6.x, 8.x, 10.x, 12.x, 14.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: microsoft/setup-msbuild@v1.0.3
+        if: runner.os == 'Windows'
+      - run: npm install
+      - run: npm run prebuild -- -u ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run prebuild-legacy -- -u ${{ secrets.GITHUB_TOKEN }}
