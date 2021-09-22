@@ -62,6 +62,21 @@ All notable changes to this project will be documented in this file. See [standa
 
 
 
+<a name="2.999.999-alpha.0"></a>
+## [2.999.999-alpha.0](https://github.com/mongodb-js/bson-ext/compare/v2.0.5...v2.999.999-alpha.0) (2021-09-22)
+
+
+### Bug Fixes
+
+* **NODE-3618:** serialization of BSON with embedded null bytes in strings ([#80](https://github.com/mongodb-js/bson-ext/issues/80)) ([9e1304b](https://github.com/mongodb-js/bson-ext/commit/9e1304b))
+
+
+### Features
+
+* **NODE-3302:** replace MAX_BSON_SIZE with "maxBSONSize" property ([#65](https://github.com/mongodb-js/bson-ext/issues/65)) ([0b59b67](https://github.com/mongodb-js/bson-ext/commit/0b59b67))
+
+
+
 <a name="2.0.5"></a>
 ## [2.0.5](https://github.com/mongodb-js/bson-ext/compare/v2.0.4...v2.0.5) (2020-07-31)
 
