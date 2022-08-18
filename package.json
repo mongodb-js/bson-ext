@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "bson": "/Users/aditi.khare/code/js-bson",
+    "bson": "^4.5.2",
     "nan": "^2.14.2",
     "prebuild-install": "^6.1.2"
   },
