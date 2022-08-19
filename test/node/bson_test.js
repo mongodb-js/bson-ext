@@ -2337,7 +2337,7 @@ describe('BSON', function() {
         const toBinarySerialization = BSON.serialize({ uuid: exampleUUID.toBinary() });
         const plainUUIDSerialization = BSON.serialize({ uuid: exampleUUID });
         expect(plainUUIDSerialization).to.deep.equal(toBinarySerialization);
-        expect(BSON.deserialize(output)).to.equal(exampleUUID);
+        expect(BSON.deserialize(plainUUIDSerialization))).to.equal(exampleUUID);
       });
   
       it('should have a valid UUID _bsontype with Object input without error', () => {
