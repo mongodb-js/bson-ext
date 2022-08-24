@@ -806,18 +806,23 @@ describe('BSON', function() {
   /**
    * @ignore
    */
-  it('Should Correctly Serialize and Deserialize Number 4', function(done) {
-    var doc = { doc: BSON.BSON_INT32_MAX + 10 };
-    var serialized_data = createBSON().serialize(doc);
+  it('should round-trip int32 max plus 10 as a double', function(done) {
+    const UTF8_A = 'a'.charCodeAt(0)
+    const doc = { a: BSON.BSON_INT32_MAX + 10 };
+    const serialized_data = createBSON().serialize(doc);
 
-    var serialized_data2 = new Buffer(createBSON().calculateObjectSize(doc));
+    // Type is double
+    expect(serialized_data[4]).to.equal(0x01);
+    // Key is 'a'
+    expect(serialized_data[5]).to.equal(UTF8_A);
+
+    const serialized_data2 = new Buffer.alloc(createBSON().calculateObjectSize(doc));
     createBSON().serializeWithBufferAndIndex(doc, serialized_data2);
-    assertBuffersEqual(done, serialized_data, serialized_data2, 0);
+    expect(Buffer.prototype.equals.call(serialized_data, serialized_data2)).to.be.true;
 
-    var deserialized = createBSON().deserialize(serialized_data);
-    // expect(deserialized.doc instanceof Binary).to.be.ok;
-    expect(BSON.BSON_INT32_MAX + 10).to.equal(deserialized.doc);
-    done();
+    const deserialized = createBSON().deserialize(serialized_data);
+    expect(deserialized).to.have.property('a');
+    expect(deserialized).to.equal(BSON.BSON_INT32_MAX + 10);
   });
 
   /**

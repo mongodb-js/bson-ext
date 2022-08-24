@@ -334,10 +334,15 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
                                        bool isArray) {
   Local<Value> value = constValue;
 
+  std::cout << "hello from serialize" << std::endl;
+
   // Process all the values
   if (value->IsNumber()) {
     double doubleValue = NanTo<double>(value);
+    std::cout << "doubleValue: " << doubleValue << std::endl;
+    std::cout << "(int)doubleValue: " << (int)doubleValue << std::endl;
     int intValue = (int)doubleValue;
+    std::cout << "intValue == doubleValue: " << (intValue == doubleValue) << std::endl;
     if (intValue == doubleValue) {
       this->CommitType(typeLocation, BSON_TYPE_INT);
       this->WriteInt32(intValue);
