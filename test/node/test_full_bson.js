@@ -737,9 +737,9 @@ describe('Full BSON', function() {
 
   it('Should correctly fail to serialize BSONRegExp with null bytes', function(done) {
     var doc = {};
-    doc.test = new BSONRegExp('a\0b');
 
     try {
+      doc.test = new BSONRegExp('a\0b');
       bson.serialize(doc, {
         checkKeys: true
       });
