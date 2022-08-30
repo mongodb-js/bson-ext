@@ -337,11 +337,14 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
   // Process all the values
   if (value->IsNumber()) {
     double doubleValue = NanTo<double>(value);
-    int intValue = (int)doubleValue;
-    if (intValue == doubleValue) {
+    double flooredValue = floor(doubleValue);
+    if (flooredValue == doubleValue && flooredValue <= INT32_MAX && flooredValue >= INT32_MIN) {
+      // If there is no fractional component and we are within an [int32.min, int32.max]
+      // write a bson int32
       this->CommitType(typeLocation, BSON_TYPE_INT);
-      this->WriteInt32(intValue);
+      this->WriteInt32(flooredValue);
     } else {
+      // otherwise write the double
       this->CommitType(typeLocation, BSON_TYPE_NUMBER);
       this->WriteDouble(doubleValue);
     }
