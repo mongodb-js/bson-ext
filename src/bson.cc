@@ -338,7 +338,7 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
   if (value->IsNumber()) {
     double doubleValue = NanTo<double>(value);
     double flooredValue = floor(doubleValue);
-    bool isNegativeZero = signbit(doubleValue) == 1 && std::fpclassify(doubleValue) == FP_ZERO;
+    bool isNegativeZero = std::signbit(doubleValue) == true && std::fpclassify(doubleValue) == FP_ZERO;
 
     if (isNegativeZero) {
       // TODO(NODE-4335): -0 should be serialized as double
