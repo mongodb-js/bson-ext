@@ -338,7 +338,14 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
   if (value->IsNumber()) {
     double doubleValue = NanTo<double>(value);
     double flooredValue = floor(doubleValue);
-    if (flooredValue == doubleValue && flooredValue <= INT32_MAX && flooredValue >= INT32_MIN) {
+    bool isNegativeZero = signbit(doubleValue) == 1 && std::fpclassify(doubleValue) == FP_ZERO;
+
+    if (isNegativeZero) {
+      // TODO(NODE-4335): -0 should be serialized as double
+      // In order to preserve consistent behavior with js-bson, serialize -0.0 as an int32
+      this->CommitType(typeLocation, BSON_TYPE_INT);
+      this->WriteInt32(0);
+    } else if (flooredValue == doubleValue && flooredValue <= INT32_MAX && flooredValue >= INT32_MIN) {
       // If there is no fractional component and we are within an [int32.min, int32.max]
       // write a bson int32
       this->CommitType(typeLocation, BSON_TYPE_INT);
