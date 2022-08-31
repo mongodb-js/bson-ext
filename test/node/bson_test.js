@@ -1171,7 +1171,7 @@ describe('BSON', function() {
       var doc = { doc: val };
       var serialized_data = createBSON().serialize(doc);
 
-      var serialized_data2 = new Buffer.alloc(createBSON().calculateObjectSize(doc));
+      var serialized_data2 = new Buffer(createBSON().calculateObjectSize(doc));
       createBSON().serializeWithBufferAndIndex(doc, serialized_data2);
       assertBuffersEqual(done, serialized_data, serialized_data2, 0);
 
