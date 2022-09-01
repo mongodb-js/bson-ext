@@ -337,7 +337,7 @@ void BSONSerializer<T>::SerializeValue(void *typeLocation,
   // Process all the values
   if (value->IsNumber()) {
     double doubleValue = NanTo<double>(value);
-    double flooredValue = floor(doubleValue);
+    double flooredValue = std::floor(doubleValue);
     bool isNegativeZero = std::signbit(doubleValue) == true && std::fpclassify(doubleValue) == FP_ZERO;
 
     if (isNegativeZero) {
