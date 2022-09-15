@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.0.3](https://github.com/mongodb-js/bson-ext/compare/v4.0.2...v4.0.3) (2022-09-15)
+
+
+### Bug Fixes
+
+* **NODE-4532:** round trip double values consistently ([#89](https://github.com/mongodb-js/bson-ext/issues/89)) ([8714e7d](https://github.com/mongodb-js/bson-ext/commit/8714e7d849647115395b89ecf56b623398bad5f3))
+
 ### [4.0.2](https://github.com/mongodb-js/bson-ext/compare/v4.0.1...v4.0.2) (2021-10-05)
 
 
