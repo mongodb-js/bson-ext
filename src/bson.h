@@ -141,6 +141,7 @@ public:
 
   // Calculate size of function
   static NAN_METHOD(CalculateObjectSize);
+  static NAN_METHOD(SetInternalBufferSize);
   static NAN_METHOD(SerializeWithBufferAndIndex);
 
   // Constructor used for creating new BSON objects from C++
@@ -287,24 +288,27 @@ const size_t MAX_BSON_SIZE(1024 * 1024 * 17);
 class DataStream {
 public:
   DataStream(char *aDestinationBuffer)
-      : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer), depth(0) {
+      : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer), depth(0), maxBSONSize(MAX_BSON_SIZE) {
+  }
+  DataStream(char *aDestinationBuffer, size_t aMaxBSONSize)
+      : destinationBuffer(aDestinationBuffer), p(aDestinationBuffer), depth(0), maxBSONSize(aMaxBSONSize) {
   }
 
   void WriteByte(int value) {
-    if ((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 1) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     *p++ = value;
   }
 
   void WriteByte(const Local<Object> &object, const Local<String> &key) {
-    if ((size_t)((p + 1) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 1) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     *p++ = NanTo<int32_t>(NanGet(object, key));
   }
 
 #if USE_MISALIGNED_MEMORY_ACCESS
   void WriteInt32(int32_t value) {
-    if ((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 4) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
 #if defined(_MSC_VER)
     *reinterpret_cast<int32_t *>(p) =
@@ -317,7 +321,7 @@ public:
   }
 
   void WriteInt64(int64_t value) {
-    if ((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 8) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
 #if defined(_MSC_VER)
     *reinterpret_cast<int64_t *>(p) =
@@ -330,7 +334,7 @@ public:
   }
 
   void WriteDouble(double value) {
-    if ((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 8) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     *reinterpret_cast<double *>(p) = value;
     if (is_bigendian()) {
@@ -347,21 +351,21 @@ public:
   }
 #else
   void WriteInt32(int32_t value) {
-    if ((size_t)((p + 4) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 4) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     memcpy(p, &value, 4);
     p += 4;
   }
 
   void WriteInt64(int64_t value) {
-    if ((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 8) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     memcpy(p, &value, 8);
     p += 8;
   }
 
   void WriteDouble(double value) {
-    if ((size_t)((p + 8) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + 8) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     memcpy(p, &value, 8);
     p += 8;
@@ -395,7 +399,7 @@ public:
 
   void WriteLengthPrefixedString(const Local<String> &value) {
     int32_t length = NanUtf8Length(value) + 1;
-    if ((size_t)((p + length) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + length) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     WriteInt32(length);
     WriteString(value);
@@ -404,13 +408,13 @@ public:
   void WriteObjectId(const Local<Object> &object, const Local<String> &key);
 
   void WriteString(const Local<String> &value) {
-    if ((size_t)(p - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)(p - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     p += NanWriteUtf8(value, p);
   } // This returns the number of bytes inclusive of the NULL terminator.
 
   void WriteData(const char *data, size_t length) {
-    if ((size_t)((p + length) - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)((p + length) - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     memcpy(p, data, length);
     p += length;
@@ -427,7 +431,7 @@ public:
   }
 
   void *BeginWriteSize() {
-    if ((size_t)(p - destinationBuffer) > MAX_BSON_SIZE)
+    if ((size_t)(p - destinationBuffer) > maxBSONSize)
       throw "document is larger than max bson document size of 16MB";
     void *returnValue = p;
     p += 4;
@@ -469,6 +473,7 @@ public:
   char *const destinationBuffer; // base, never changes
   char *p;                       // cursor into buffer
   uint32_t depth;                // keeps track of recursive depth
+  uint32_t maxBSONSize;
 };
 
 template <typename T> class BSONSerializer : public T {
@@ -484,6 +489,11 @@ public:
   BSONSerializer(BSON *aBson, bool aCheckKeys, bool aSerializeFunctions,
                  bool ignoreUndefined, char *parentParam)
       : Inherited(parentParam), checkKeys(aCheckKeys),
+        serializeFunctions(aSerializeFunctions),
+        ignoreUndefined(ignoreUndefined), bson(aBson) {}
+  BSONSerializer(BSON *aBson, bool aCheckKeys, bool aSerializeFunctions,
+                 bool ignoreUndefined, char *parentParam, size_t maxBSONSize)
+      : Inherited(parentParam, maxBSONSize), checkKeys(aCheckKeys),
         serializeFunctions(aSerializeFunctions),
         ignoreUndefined(ignoreUndefined), bson(aBson) {}
 
