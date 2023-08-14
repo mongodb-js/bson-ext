@@ -4,10 +4,19 @@ _A BSON parser Node.JS native addon._
 
 BSON is short for Bin­ary JSON and is the bin­ary-en­coded seri­al­iz­a­tion of JSON-like doc­u­ments. You can learn more about it in [the specification](http://bsonspec.org).
 
-While this library is compatible with the mongodb driver version 4+, bson-ext will soon be deprecated and no longer supported.  It is strongly recommended
+While this library is compatible with the mongodb driver version 4+, bson-ext will soon be deprecated and no longer supported. It is strongly recommended
 that [js-bson](https://github.com/mongodb/js-bson) be used instead.
 
-**NOTE: bson-ext version 4+ works with js-bson version 4+ and the mongodb driver version 4+.**
+### MongoDB Node.js Driver Version Compatibility
+
+Only the following version combinations with the [MongoDB Node.js Driver](https://github.com/mongodb/node-mongodb-native) are considered stable.
+
+|               | `bson-ext@1.x` | `bson-ext@2.x` | `bson-ext@4.x` |
+| ------------- | -------------- | -------------- | -------------- |
+| `mongodb@6.x` | N/A            | N/A            | N/A            |
+| `mongodb@5.x` | N/A            | N/A            | N/A            |
+| `mongodb@4.x` | N/A            | N/A            | ✓              |
+| `mongodb@3.x` | ✓              | ✓              | N/A            |
 
 ## Installation
 
