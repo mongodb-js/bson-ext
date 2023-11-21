@@ -1277,6 +1277,7 @@ void BSON::Initialize(v8::Local<v8::Object> target) {
 
   // Instance methods
   Nan::SetPrototypeMethod(t, "calculateObjectSize", CalculateObjectSize);
+  Nan::SetPrototypeMethod(t, "setInternalBufferSize", SetInternalBufferSize);
   Nan::SetPrototypeMethod(t, "serialize", BSONSerialize);
   Nan::SetPrototypeMethod(t, "serializeWithBufferAndIndex",
                           SerializeWithBufferAndIndex);
@@ -1682,7 +1683,7 @@ NAN_METHOD(BSON::BSONSerialize) {
 
     // Check if we have a boolean value
     BSONSerializer<DataStream> data(bson, checkKeys, serializeFunctions,
-                                    ignoreUndefined, serialized_object);
+                                    ignoreUndefined, serialized_object, bson->maxBSONSize);
     data.SerializeDocument(object);
 
     // Get the object size
@@ -1762,6 +1763,19 @@ NAN_METHOD(BSON::CalculateObjectSize) {
   info.GetReturnValue().Set(
       Nan::New<Uint32>((uint32_t)countSerializer.GetSerializeSize()));
 }
+NAN_METHOD(BSON::SetInternalBufferSize) {
+  Nan::HandleScope scope;
+  if (info.Length() != 1 && !info[0]->IsNumber()) {
+    return Nan::ThrowError("First argument must be a number");
+  }
+  BSON *bson = ObjectWrap::Unwrap<BSON>(info.This());
+  double new_size = NanTo<double>(info[0]);
+
+  if (bson->maxBSONSize < new_size) {
+    bson->maxBSONSize = new_size;
+    bson->buffer.Reset(Unmaybe(Nan::NewBuffer(sizeof(char) * new_size)));
+  }
+}
 
 NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
   Nan::HandleScope scope;
@@ -1833,7 +1847,7 @@ NAN_METHOD(BSON::SerializeWithBufferAndIndex) {
     size_t length = node::Buffer::Length(obj);
 
     BSONSerializer<DataStream> dataSerializer(
-        bson, checkKeys, serializeFunctions, ignoreUndefined, data + index);
+        bson, checkKeys, serializeFunctions, ignoreUndefined, data + index, bson->maxBSONSize);
     dataSerializer.SerializeDocument(bson->GetSerializeObject(info[0]));
     object_size = dataSerializer.GetSerializeSize();
 
